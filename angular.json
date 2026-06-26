@@ -6,7 +6,7 @@
   },
   "newProjectRoot": "projects",
   "projects": {
-    "random-station": {
+    "random-radio": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -56,10 +56,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "random-station:build:production"
+              "buildTarget": "random-radio:build:production"
             },
             "development": {
-              "buildTarget": "random-station:build:development"
+              "buildTarget": "random-radio:build:development"
             }
           },
           "defaultConfiguration": "development"
