@@ -4,11 +4,12 @@ import { RadioBrowser, RadioStation } from './radio-browser';
 @Component({
   selector: 'app-root',
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrl: './app.css',
 })
 export class App {
   private readonly radioBrowser = inject(RadioBrowser);
   private readonly audio = viewChild<ElementRef<HTMLAudioElement>>('audioPlayer');
+  private readonly regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
 
   protected readonly station = signal<RadioStation | null>(null);
   protected readonly isLoading = signal(false);
@@ -50,6 +51,14 @@ export class App {
     }
 
     this.error.set('This stream stopped responding. Try another station.');
+  }
+
+  protected countryName(countryCode: string): string {
+    try {
+      return this.regionNames.of(countryCode.toUpperCase()) ?? countryCode;
+    } catch {
+      return countryCode;
+    }
   }
 
   private currentStreamUrl(): string {
