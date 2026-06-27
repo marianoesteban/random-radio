@@ -44,7 +44,7 @@
           <h2>{{ currentStation.name }}</h2>
           <p>
             @if (currentStation.countrycode) {
-              {{ currentStation.countrycode }}
+              {{ countryName(currentStation.countrycode) }}
             }
             @if (currentStation.language) {
               <span>{{ currentStation.language }}</span>

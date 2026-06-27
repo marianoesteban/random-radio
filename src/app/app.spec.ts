@@ -101,7 +101,7 @@ describe('App', () => {
     expect(button.disabled).toBe(false);
     expect(status.textContent).toContain('Now playing Station One');
     expect(stationCard.textContent).toContain('Station One');
-    expect(stationCard.textContent).toContain('AR');
+    expect(stationCard.textContent).toContain('Argentina');
     expect(stationCard.textContent).toContain('Spanish');
     expect(stationCard.textContent).toContain('MP3');
     expect(stationCard.textContent).toContain('128 kbps');
