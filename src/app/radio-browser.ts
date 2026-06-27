@@ -24,22 +24,17 @@ interface StationClickResponse {
   url: string;
 }
 
-interface RadioBrowserStats {
-  stations: number;
-}
-
 @Service()
 export class RadioBrowser {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = 'https://de1.api.radio-browser.info/json';
-  private stationCount: number | null = null;
+  private readonly randomOffsetLimit = 100;
 
   async getRandomStation(): Promise<RadioStation> {
-    const stationCount = await this.getStationCount();
     const params = new HttpParams()
       .set('hidebroken', 'true')
       .set('limit', '1')
-      .set('offset', this.randomOffset(stationCount))
+      .set('offset', this.randomOffset())
       .set('order', 'random');
 
     const stations = await firstValueFrom(
@@ -65,21 +60,7 @@ export class RadioBrowser {
     );
   }
 
-  private async getStationCount(): Promise<number> {
-    if (this.stationCount) {
-      return this.stationCount;
-    }
-
-    const stats = await firstValueFrom(
-      this.http.get<RadioBrowserStats>(`${this.baseUrl}/stats`),
-    );
-
-    this.stationCount = Math.max(1, stats.stations);
-
-    return this.stationCount;
-  }
-
-  private randomOffset(stationCount: number): string {
-    return Math.floor(Math.random() * stationCount).toString();
+  private randomOffset(): string {
+    return Math.floor(Math.random() * this.randomOffsetLimit).toString();
   }
 }
