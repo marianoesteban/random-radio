@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { Title } from '@angular/platform-browser';
 import { type Mock, type MockInstance, vi } from 'vitest';
 import { App } from './app';
 import { RadioBrowser, RadioStation } from './radio-browser';
@@ -31,10 +32,12 @@ describe('App', () => {
     streamUrl: Mock<(station: RadioStation) => string>;
     reportStationClick: Mock<(stationUuid: string) => Promise<void>>;
   };
+  let title: Title;
   let loadAudio: MockInstance<() => void>;
   let playAudio: MockInstance<() => Promise<void>>;
 
   beforeEach(async () => {
+    document.title = 'Random Radio - Discover Live Stations';
     radioBrowser = {
       getRandomStation: vi.fn(),
       streamUrl: vi.fn((station) => station.url_resolved || station.url),
@@ -47,6 +50,8 @@ describe('App', () => {
       imports: [App],
       providers: [{ provide: RadioBrowser, useValue: radioBrowser }],
     }).compileComponents();
+
+    title = TestBed.inject(Title);
   });
 
   afterEach(() => {
@@ -98,6 +103,7 @@ describe('App', () => {
     expect(loadAudio).toHaveBeenCalledOnce();
     expect(playAudio).toHaveBeenCalledOnce();
     expect(radioBrowser.reportStationClick).toHaveBeenCalledWith('station-1');
+    expect(title.getTitle()).toBe('Random Radio - Station One');
     expect(button.disabled).toBe(false);
     expect(status.textContent).toContain('Now playing Station One');
     expect(stationCard.textContent).toContain('Station One');
@@ -128,6 +134,38 @@ describe('App', () => {
     expect(loadAudio).not.toHaveBeenCalled();
     expect(playAudio).not.toHaveBeenCalled();
     expect(radioBrowser.reportStationClick).not.toHaveBeenCalled();
+    expect(title.getTitle()).toBe('Random Radio - Discover Live Stations');
+  });
+
+  it('should keep the default page title when the station name is blank', async () => {
+    const station = createStation({ name: '   ' });
+    radioBrowser.getRandomStation.mockResolvedValue(station);
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    button.click();
+
+    await fixture.whenStable();
+    await flushPromises();
+
+    expect(title.getTitle()).toBe('Random Radio - Discover Live Stations');
+  });
+
+  it('should update the page title even when playback fails for a selected station', async () => {
+    const station = createStation();
+    radioBrowser.getRandomStation.mockResolvedValue(station);
+    playAudio.mockRejectedValue(new Error('blocked'));
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    button.click();
+
+    await fixture.whenStable();
+    await flushPromises();
+
+    expect(title.getTitle()).toBe('Random Radio - Station One');
   });
 
   it('should show a stream error only after a station has been selected', async () => {
