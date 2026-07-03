@@ -1,4 +1,5 @@
 import { Component, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { Title } from '@angular/platform-browser';
 import { RadioBrowser, RadioStation } from './radio-browser';
 
 @Component({
@@ -8,6 +9,8 @@ import { RadioBrowser, RadioStation } from './radio-browser';
 })
 export class App {
   private readonly radioBrowser = inject(RadioBrowser);
+  private readonly title = inject(Title);
+  private readonly defaultPageTitle = this.title.getTitle();
   private readonly audio = viewChild<ElementRef<HTMLAudioElement>>('audioPlayer');
   private readonly regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
 
@@ -23,6 +26,7 @@ export class App {
       const station = await this.radioBrowser.getRandomStation();
 
       this.station.set(station);
+      this.updatePageTitle(station.name);
       await this.playCurrentStation(station);
     } catch {
       this.error.set('The station could not be played. Try another one.');
@@ -65,5 +69,11 @@ export class App {
     const station = this.station();
 
     return station ? this.radioBrowser.streamUrl(station) : '';
+  }
+
+  private updatePageTitle(stationName: string): void {
+    const name = stationName.trim();
+
+    this.title.setTitle(name ? `Random Radio - ${name}` : this.defaultPageTitle);
   }
 }
