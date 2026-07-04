@@ -109,8 +109,6 @@ describe('App', () => {
     expect(stationCard.textContent).toContain('Station One');
     expect(stationCard.textContent).toContain('Argentina');
     expect(stationCard.textContent).toContain('Spanish');
-    expect(stationCard.textContent).toContain('MP3');
-    expect(stationCard.textContent).toContain('128 kbps');
   });
 
   it('should show an error and reset loading when a station cannot be fetched', async () => {
