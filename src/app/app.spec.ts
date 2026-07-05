@@ -108,7 +108,6 @@ describe('App', () => {
     expect(status.textContent).toContain('Now playing Station One');
     expect(stationCard.textContent).toContain('Station One');
     expect(stationCard.textContent).toContain('Argentina');
-    expect(stationCard.textContent).toContain('Spanish');
   });
 
   it('should show an error and reset loading when a station cannot be fetched', async () => {

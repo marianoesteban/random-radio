@@ -123,10 +123,6 @@ h1 {
   color: #4c5c54;
 }
 
-.station-details span::before {
-  content: " / ";
-}
-
 .audio {
   display: block;
   width: 100%;
