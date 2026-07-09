@@ -1,9 +1,11 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { RadioBrowser, RadioStation } from './radio-browser';
 
 @Component({
   selector: 'app-root',
+  imports: [NgTemplateOutlet],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })

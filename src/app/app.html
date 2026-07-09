@@ -28,27 +28,8 @@
 
     @if (station(); as currentStation) {
       <article class="station" aria-label="Current station">
-        @if (stationHomepage()) {
-          <a
-            class="station-logo-link"
-            [href]="stationHomepage()"
-            target="_blank"
-            rel="noopener noreferrer"
-            [attr.aria-label]="'Visit ' + currentStation.name + ' homepage'"
-          >
-            @if (currentStation.favicon) {
-              <img
-                class="station-logo"
-                [src]="currentStation.favicon"
-                width="72"
-                height="72"
-                alt=""
-              >
-            } @else {
-              <span class="station-logo fallback" aria-hidden="true">RR</span>
-            }
-          </a>
-        } @else {
+        @let homepage = stationHomepage();
+        <ng-template #stationLogo>
           @if (currentStation.favicon) {
             <img
               class="station-logo"
@@ -58,8 +39,22 @@
               alt=""
             >
           } @else {
-            <div class="station-logo fallback" aria-hidden="true">RR</div>
+            <span class="station-logo fallback" aria-hidden="true">RR</span>
           }
+        </ng-template>
+
+        @if (homepage) {
+          <a
+            class="station-logo-link"
+            [href]="homepage"
+            target="_blank"
+            rel="noopener noreferrer"
+            [attr.aria-label]="'Visit ' + currentStation.name + ' homepage'"
+          >
+            <ng-container [ngTemplateOutlet]="stationLogo"></ng-container>
+          </a>
+        } @else {
+          <ng-container [ngTemplateOutlet]="stationLogo"></ng-container>
         }
 
         <div class="station-details">
