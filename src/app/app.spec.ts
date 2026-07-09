@@ -108,7 +108,7 @@ describe('App', () => {
     expect(radioBrowser.reportStationClick).toHaveBeenCalledWith('station-1');
     expect(title.getTitle()).toBe('Random Radio - Station One');
     expect(button.disabled).toBe(false);
-    expect(status.textContent).toContain('Now playing Station One');
+    expect(status.textContent).toContain('Playing now.');
     expect(stationCard.textContent).toContain('Station One');
     expect(stationCard.querySelector('.country-flag')?.textContent).toBe('🇦🇷');
     expect(stationCard.textContent).toContain('Argentina');
