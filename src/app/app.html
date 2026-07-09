@@ -28,16 +28,38 @@
 
     @if (station(); as currentStation) {
       <article class="station" aria-label="Current station">
-        @if (currentStation.favicon) {
-          <img
-            class="station-logo"
-            [src]="currentStation.favicon"
-            width="72"
-            height="72"
-            alt=""
+        @if (stationHomepage()) {
+          <a
+            class="station-logo-link"
+            [href]="stationHomepage()"
+            target="_blank"
+            rel="noopener noreferrer"
+            [attr.aria-label]="'Visit ' + currentStation.name + ' homepage'"
           >
+            @if (currentStation.favicon) {
+              <img
+                class="station-logo"
+                [src]="currentStation.favicon"
+                width="72"
+                height="72"
+                alt=""
+              >
+            } @else {
+              <span class="station-logo fallback" aria-hidden="true">RR</span>
+            }
+          </a>
         } @else {
-          <div class="station-logo fallback" aria-hidden="true">RR</div>
+          @if (currentStation.favicon) {
+            <img
+              class="station-logo"
+              [src]="currentStation.favicon"
+              width="72"
+              height="72"
+              alt=""
+            >
+          } @else {
+            <div class="station-logo fallback" aria-hidden="true">RR</div>
+          }
         }
 
         <div class="station-details">

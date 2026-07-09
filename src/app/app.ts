@@ -1,4 +1,4 @@
-import { Component, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { RadioBrowser, RadioStation } from './radio-browser';
 
@@ -15,6 +15,15 @@ export class App {
   private readonly regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
 
   protected readonly station = signal<RadioStation | null>(null);
+  protected readonly stationHomepage = computed(() => {
+    const homepage = this.station()?.homepage.trim();
+
+    if (!homepage) {
+      return '';
+    }
+
+    return /^https?:\/\//i.test(homepage) ? homepage : '';
+  });
   protected readonly isLoading = signal(false);
   protected readonly error = signal('');
 
