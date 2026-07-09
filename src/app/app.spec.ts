@@ -110,6 +110,7 @@ describe('App', () => {
     expect(button.disabled).toBe(false);
     expect(status.textContent).toContain('Now playing Station One');
     expect(stationCard.textContent).toContain('Station One');
+    expect(stationCard.querySelector('.country-flag')?.textContent).toBe('🇦🇷');
     expect(stationCard.textContent).toContain('Argentina');
     expect(homepageLink.href).toBe('https://example.com/');
     expect(homepageLink.target).toBe('_blank');
