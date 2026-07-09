@@ -61,6 +61,7 @@ h1 {
 }
 
 .primary-action:focus-visible,
+.station-logo-link:focus-visible,
 .audio:focus-visible {
   outline: 0.2rem solid #1b1f8f;
   outline-offset: 0.25rem;
@@ -98,6 +99,17 @@ h1 {
   border-radius: 0.5rem;
   background: #fffdf8;
   object-fit: contain;
+}
+
+.station-logo-link {
+  display: block;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 0.5rem;
+}
+
+.station-logo-link:hover .station-logo {
+  box-shadow: 0 0 0 0.2rem rgb(23 107 79 / 28%);
 }
 
 .fallback {

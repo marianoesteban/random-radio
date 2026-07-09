@@ -96,6 +96,9 @@ describe('App', () => {
     const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
     const status = fixture.nativeElement.querySelector('.status') as HTMLElement;
     const stationCard = fixture.nativeElement.querySelector('.station') as HTMLElement;
+    const homepageLink = fixture.nativeElement.querySelector(
+      '.station-logo-link',
+    ) as HTMLAnchorElement;
 
     expect(radioBrowser.getRandomStation).toHaveBeenCalledOnce();
     expect(radioBrowser.streamUrl).toHaveBeenCalledWith(station);
@@ -108,6 +111,46 @@ describe('App', () => {
     expect(status.textContent).toContain('Now playing Station One');
     expect(stationCard.textContent).toContain('Station One');
     expect(stationCard.textContent).toContain('Argentina');
+    expect(homepageLink.href).toBe('https://example.com/');
+    expect(homepageLink.target).toBe('_blank');
+    expect(homepageLink.rel).toContain('noopener');
+    expect(homepageLink.rel).toContain('noreferrer');
+    expect(homepageLink.getAttribute('aria-label')).toBe('Visit Station One homepage');
+    expect(homepageLink.querySelector('.station-logo')).not.toBeNull();
+  });
+
+  it('should not render a homepage link when the station homepage is missing', async () => {
+    const station = createStation({ homepage: '   ' });
+    radioBrowser.getRandomStation.mockResolvedValue(station);
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    button.click();
+
+    await fixture.whenStable();
+    await flushPromises();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.station-logo-link')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.station-logo')).not.toBeNull();
+  });
+
+  it('should not render a homepage link for non-web URLs', async () => {
+    const station = createStation({ homepage: 'javascript:alert(1)' });
+    radioBrowser.getRandomStation.mockResolvedValue(station);
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    button.click();
+
+    await fixture.whenStable();
+    await flushPromises();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.station-logo-link')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.station-logo')).not.toBeNull();
   });
 
   it('should show an error and reset loading when a station cannot be fetched', async () => {
