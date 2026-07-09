@@ -27,10 +27,12 @@ export class App {
     return /^https?:\/\//i.test(homepage) ? homepage : '';
   });
   protected readonly isLoading = signal(false);
+  protected readonly isPlaying = signal(false);
   protected readonly error = signal('');
 
   protected async playRandomStation(): Promise<void> {
     this.isLoading.set(true);
+    this.isPlaying.set(false);
     this.error.set('');
 
     try {
@@ -65,7 +67,17 @@ export class App {
       return;
     }
 
+    this.isPlaying.set(false);
     this.error.set('This stream stopped responding. Try another station.');
+  }
+
+  protected handleAudioPlaying(): void {
+    this.isPlaying.set(true);
+    this.error.set('');
+  }
+
+  protected handleAudioStopped(): void {
+    this.isPlaying.set(false);
   }
 
   protected countryName(countryCode: string): string {
