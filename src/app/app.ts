@@ -76,6 +76,18 @@ export class App {
     }
   }
 
+  protected countryFlag(countryCode: string): string {
+    const normalizedCode = countryCode.trim().toUpperCase();
+
+    if (!/^[A-Z]{2}$/.test(normalizedCode)) {
+      return '';
+    }
+
+    return String.fromCodePoint(
+      ...[...normalizedCode].map((letter) => letter.codePointAt(0)! + 127397),
+    );
+  }
+
   private currentStreamUrl(): string {
     const station = this.station();
 

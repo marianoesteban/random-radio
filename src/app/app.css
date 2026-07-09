@@ -135,6 +135,10 @@ h1 {
   color: #4c5c54;
 }
 
+.country-flag {
+  margin-inline-end: 0.35rem;
+}
+
 .audio {
   display: block;
   width: 100%;

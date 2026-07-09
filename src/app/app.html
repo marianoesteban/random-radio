@@ -61,6 +61,9 @@
           <h2>{{ currentStation.name }}</h2>
           <p>
             @if (currentStation.countrycode) {
+              @if (countryFlag(currentStation.countrycode); as flag) {
+                <span class="country-flag" aria-hidden="true">{{ flag }}</span>
+              }
               {{ countryName(currentStation.countrycode) }}
             }
           </p>
