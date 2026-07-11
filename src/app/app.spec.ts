@@ -35,6 +35,7 @@ describe('App', () => {
   let title: Title;
   let loadAudio: MockInstance<() => void>;
   let playAudio: MockInstance<() => Promise<void>>;
+  let pauseAudio: MockInstance<() => void>;
 
   beforeEach(async () => {
     document.title = 'Random Radio - Discover Live Stations';
@@ -45,6 +46,7 @@ describe('App', () => {
     };
     loadAudio = vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => undefined);
     playAudio = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
+    pauseAudio = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined);
 
     await TestBed.configureTestingModule({
       imports: [App],
@@ -82,7 +84,7 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
 
-    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    const button = fixture.nativeElement.querySelector('.primary-action') as HTMLButtonElement;
     button.click();
     fixture.detectChanges();
 
@@ -103,11 +105,13 @@ describe('App', () => {
     expect(radioBrowser.getRandomStation).toHaveBeenCalledOnce();
     expect(radioBrowser.streamUrl).toHaveBeenCalledWith(station);
     expect(audio.src).toBe('https://stream.example.com/live');
+    expect(audio.hasAttribute('controls')).toBe(false);
     expect(loadAudio).toHaveBeenCalledOnce();
     expect(playAudio).toHaveBeenCalledOnce();
     expect(radioBrowser.reportStationClick).toHaveBeenCalledWith('station-1');
     expect(title.getTitle()).toBe('Random Radio - Station One');
     expect(button.disabled).toBe(false);
+    expect(button.textContent).toContain('Play a Random Station');
     expect(status.textContent).toContain('Tuning in...');
 
     audio.dispatchEvent(new Event('playing'));
@@ -125,13 +129,86 @@ describe('App', () => {
     expect(homepageLink.querySelector('.station-logo')).not.toBeNull();
   });
 
+  it('should pause and resume the current station without selecting a new one', async () => {
+    const station = createStation();
+    radioBrowser.getRandomStation.mockResolvedValue(station);
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    const randomButton = fixture.nativeElement.querySelector('.primary-action') as HTMLButtonElement;
+    randomButton.click();
+
+    await fixture.whenStable();
+    await flushPromises();
+
+    const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
+    audio.dispatchEvent(new Event('playing'));
+    fixture.detectChanges();
+
+    const playbackButton = fixture.nativeElement.querySelector(
+      '.playback-action',
+    ) as HTMLButtonElement;
+    const status = fixture.nativeElement.querySelector('.status') as HTMLElement;
+
+    expect(randomButton.textContent).toContain('Play a Random Station');
+    expect(playbackButton.getAttribute('aria-label')).toBe('Stop current station');
+    expect(playbackButton.querySelector('.stop-icon')).not.toBeNull();
+
+    playbackButton.click();
+    fixture.detectChanges();
+
+    expect(pauseAudio).toHaveBeenCalledOnce();
+    expect(playbackButton.getAttribute('aria-label')).toBe('Start current station');
+    expect(playbackButton.querySelector('.play-icon')).not.toBeNull();
+    expect(status.textContent).toContain('Stopped.');
+    expect(status.textContent).not.toContain('Tuning in...');
+
+    playbackButton.click();
+
+    await fixture.whenStable();
+    await flushPromises();
+    fixture.detectChanges();
+
+    expect(playAudio).toHaveBeenCalledTimes(2);
+    expect(radioBrowser.getRandomStation).toHaveBeenCalledOnce();
+    expect(playbackButton.getAttribute('aria-label')).toBe('Stop current station');
+    expect(playbackButton.querySelector('.stop-icon')).not.toBeNull();
+  });
+
+  it('should update the audio volume from the custom volume control', async () => {
+    const station = createStation();
+    radioBrowser.getRandomStation.mockResolvedValue(station);
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('.primary-action') as HTMLButtonElement;
+    button.click();
+
+    await fixture.whenStable();
+    await flushPromises();
+    fixture.detectChanges();
+
+    const volumeInput = fixture.nativeElement.querySelector(
+      'input[type="range"]',
+    ) as HTMLInputElement;
+    volumeInput.value = '0.35';
+    volumeInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
+    const volumeValue = fixture.nativeElement.querySelector('.volume-value') as HTMLElement;
+
+    expect(audio.volume).toBe(0.35);
+    expect(volumeValue.textContent).toContain('35%');
+  });
+
   it('should not render a homepage link when the station homepage is missing', async () => {
     const station = createStation({ homepage: '   ' });
     radioBrowser.getRandomStation.mockResolvedValue(station);
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
 
-    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    const button = fixture.nativeElement.querySelector('.primary-action') as HTMLButtonElement;
     button.click();
 
     await fixture.whenStable();
@@ -148,7 +225,7 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
 
-    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    const button = fixture.nativeElement.querySelector('.primary-action') as HTMLButtonElement;
     button.click();
 
     await fixture.whenStable();
@@ -164,7 +241,7 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
 
-    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    const button = fixture.nativeElement.querySelector('.primary-action') as HTMLButtonElement;
     button.click();
     fixture.detectChanges();
 
@@ -189,7 +266,7 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
 
-    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    const button = fixture.nativeElement.querySelector('.primary-action') as HTMLButtonElement;
     button.click();
 
     await fixture.whenStable();
@@ -205,7 +282,7 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
 
-    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    const button = fixture.nativeElement.querySelector('.primary-action') as HTMLButtonElement;
     button.click();
 
     await fixture.whenStable();
@@ -227,7 +304,7 @@ describe('App', () => {
     let status = fixture.nativeElement.querySelector('.status') as HTMLElement;
     expect(status.textContent).toContain('Ready when you are.');
 
-    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    const button = fixture.nativeElement.querySelector('.primary-action') as HTMLButtonElement;
     button.click();
     await fixture.whenStable();
     fixture.detectChanges();

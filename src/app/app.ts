@@ -28,11 +28,28 @@ export class App {
   });
   protected readonly isLoading = signal(false);
   protected readonly isPlaying = signal(false);
+  protected readonly isTuning = signal(false);
+  protected readonly volume = signal(1);
+  protected readonly volumePercent = computed(() => Math.round(this.volume() * 100));
   protected readonly error = signal('');
+
+  protected async handlePlaybackButton(): Promise<void> {
+    if (!this.station()) {
+      return;
+    }
+
+    if (this.isPlaying()) {
+      this.pauseCurrentStation();
+      return;
+    }
+
+    await this.resumeCurrentStation();
+  }
 
   protected async playRandomStation(): Promise<void> {
     this.isLoading.set(true);
     this.isPlaying.set(false);
+    this.isTuning.set(true);
     this.error.set('');
 
     try {
@@ -42,6 +59,7 @@ export class App {
       this.updatePageTitle(station.name);
       await this.playCurrentStation(station);
     } catch {
+      this.isTuning.set(false);
       this.error.set('The station could not be played. Try another one.');
     } finally {
       this.isLoading.set(false);
@@ -57,9 +75,62 @@ export class App {
 
     audio.src = this.radioBrowser.streamUrl(station);
     audio.autoplay = true;
+    audio.volume = this.volume();
     audio.load();
     await audio.play();
     this.radioBrowser.reportStationClick(station.stationuuid).catch(() => undefined);
+  }
+
+  private pauseCurrentStation(): void {
+    const audio = this.audio()?.nativeElement;
+
+    if (!audio) {
+      return;
+    }
+
+    audio.pause();
+    this.isPlaying.set(false);
+    this.isTuning.set(false);
+  }
+
+  private async resumeCurrentStation(): Promise<void> {
+    const audio = this.audio()?.nativeElement;
+
+    if (!audio) {
+      this.error.set('The audio player is not available.');
+      return;
+    }
+
+    try {
+      this.error.set('');
+      this.isTuning.set(true);
+      audio.volume = this.volume();
+      await audio.play();
+      this.isPlaying.set(true);
+      this.isTuning.set(false);
+    } catch {
+      this.isPlaying.set(false);
+      this.isTuning.set(false);
+      this.error.set('The station could not be played. Try another one.');
+    }
+  }
+
+  protected handleVolumeChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const nextVolume = Number(input.value);
+
+    if (!Number.isFinite(nextVolume)) {
+      return;
+    }
+
+    const volume = Math.min(1, Math.max(0, nextVolume));
+    const audio = this.audio()?.nativeElement;
+
+    this.volume.set(volume);
+
+    if (audio) {
+      audio.volume = volume;
+    }
   }
 
   protected handleAudioError(): void {
@@ -68,16 +139,19 @@ export class App {
     }
 
     this.isPlaying.set(false);
+    this.isTuning.set(false);
     this.error.set('This stream stopped responding. Try another station.');
   }
 
   protected handleAudioPlaying(): void {
     this.isPlaying.set(true);
+    this.isTuning.set(false);
     this.error.set('');
   }
 
   protected handleAudioStopped(): void {
     this.isPlaying.set(false);
+    this.isTuning.set(false);
   }
 
   protected countryName(countryCode: string): string {
