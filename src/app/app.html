@@ -1,6 +1,63 @@
 <main class="shell">
   <section class="player" aria-labelledby="page-title">
-    <p class="eyebrow">Random Radio</p>
+    <div class="topbar">
+      <p class="eyebrow">Random Radio</p>
+
+      <div class="favorites-menu">
+        <button
+          class="menu-button"
+          type="button"
+          aria-controls="favorites-menu-panel"
+          [attr.aria-expanded]="isFavoritesMenuOpen()"
+          (click)="toggleFavoritesMenu()"
+        >
+          <span class="menu-icon" aria-hidden="true"></span>
+          <span>Favorites</span>
+          <span class="favorite-count" aria-label="Favorite station count">
+            {{ favoriteStations().length }}
+          </span>
+        </button>
+
+        @if (isFavoritesMenuOpen()) {
+          <section
+            id="favorites-menu-panel"
+            class="favorites-panel"
+            aria-labelledby="favorites-title"
+          >
+            <h2 id="favorites-title">Favorites</h2>
+
+            @if (favoriteStations().length) {
+              <ul class="favorite-list">
+                @for (favorite of favoriteStations(); track favorite.stationuuid) {
+                  <li>
+                    <button
+                      class="favorite-station"
+                      type="button"
+                      [disabled]="isLoading()"
+                      (click)="playFavoriteStation(favorite)"
+                      [attr.aria-label]="'Play favorite station ' + favorite.name"
+                    >
+                      <span class="favorite-name">{{ favorite.name }}</span>
+                      @if (favorite.countrycode) {
+                        <span class="favorite-country">
+                          @if (countryFlag(favorite.countrycode); as flag) {
+                            <span aria-hidden="true">{{ flag }}</span>
+                          }
+                          {{ countryName(favorite.countrycode) }}
+                        </span>
+                      }
+                    </button>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="empty-favorites">Your favorite stations will show up here.</p>
+            }
+          </section>
+        }
+      </div>
+    </div>
+
     <h1 id="page-title">Press play and land somewhere on the dial.</h1>
 
     <button
@@ -72,6 +129,24 @@
             }
           </p>
         </div>
+
+        <button
+          class="favorite-toggle"
+          type="button"
+          [class.is-favorite]="isCurrentStationFavorite()"
+          (click)="toggleFavoriteStation(currentStation)"
+          [attr.aria-pressed]="isCurrentStationFavorite()"
+          [attr.aria-label]="
+            isCurrentStationFavorite()
+              ? 'Remove ' + currentStation.name + ' from favorites'
+              : 'Add ' + currentStation.name + ' to favorites'
+          "
+          [attr.data-tooltip]="
+            isCurrentStationFavorite() ? 'Remove from favorites' : 'Add to favorites'
+          "
+        >
+          <span class="favorite-icon" aria-hidden="true"></span>
+        </button>
       </article>
 
       <div class="audio-controls" role="group" aria-label="Audio controls">
