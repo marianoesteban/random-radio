@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
-import { RadioStation } from '../../radio-browser';
+import { RadioStation } from '../../services/radio-browser';
 import { StationCard } from './station-card';
 
 function createStation(overrides: Partial<RadioStation> = {}): RadioStation {

@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Title } from '@angular/platform-browser';
 import { type Mock, type MockInstance, vi } from 'vitest';
 import { App } from './app';
-import { RadioBrowser, RadioStation } from './radio-browser';
+import { RadioBrowser, RadioStation } from './services/radio-browser';
 
 function createStation(overrides: Partial<RadioStation> = {}): RadioStation {
   return {

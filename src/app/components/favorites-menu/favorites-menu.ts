@@ -1,5 +1,5 @@
 import { Component, input, output } from '@angular/core';
-import { RadioStation } from '../../radio-browser';
+import { RadioStation } from '../../services/radio-browser';
 import { CountryLabel } from '../country-label/country-label';
 
 @Component({

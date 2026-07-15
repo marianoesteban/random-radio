@@ -4,7 +4,7 @@ import { AudioControls } from './components/audio-controls/audio-controls';
 import { FavoritesMenu } from './components/favorites-menu/favorites-menu';
 import { PlayerStatus } from './components/player-status/player-status';
 import { StationCard } from './components/station-card/station-card';
-import { RadioBrowser, RadioStation } from './radio-browser';
+import { RadioBrowser, RadioStation } from './services/radio-browser';
 
 @Component({
   selector: 'app-root',
