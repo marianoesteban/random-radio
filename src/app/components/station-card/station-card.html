@@ -1,0 +1,51 @@
+<article class="station" aria-label="Current station">
+  @let currentStation = station();
+  @let homepageUrl = homepage();
+
+  <ng-template #stationLogo>
+    @if (currentStation.favicon) {
+      <img class="station-logo" [src]="currentStation.favicon" width="72" height="72" alt="" />
+    } @else {
+      <span class="station-logo fallback" aria-hidden="true">RR</span>
+    }
+  </ng-template>
+
+  @if (homepageUrl) {
+    <a
+      class="station-logo-link"
+      [href]="homepageUrl"
+      target="_blank"
+      rel="noopener noreferrer"
+      [attr.aria-label]="'Visit ' + currentStation.name + ' homepage'"
+    >
+      <ng-container [ngTemplateOutlet]="stationLogo"></ng-container>
+    </a>
+  } @else {
+    <ng-container [ngTemplateOutlet]="stationLogo"></ng-container>
+  }
+
+  <div class="station-details">
+    <h2>{{ currentStation.name }}</h2>
+    <p>
+      @if (currentStation.countrycode) {
+        <app-country-label [countryCode]="currentStation.countrycode"></app-country-label>
+      }
+    </p>
+  </div>
+
+  <button
+    class="favorite-toggle"
+    type="button"
+    [class.is-favorite]="isFavorite()"
+    (click)="toggleFavorite()"
+    [attr.aria-pressed]="isFavorite()"
+    [attr.aria-label]="
+      isFavorite()
+        ? 'Remove ' + currentStation.name + ' from favorites'
+        : 'Add ' + currentStation.name + ' to favorites'
+    "
+    [attr.data-tooltip]="isFavorite() ? 'Remove from favorites' : 'Add to favorites'"
+  >
+    <span class="favorite-icon" aria-hidden="true"></span>
+  </button>
+</article>

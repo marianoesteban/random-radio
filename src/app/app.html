@@ -3,59 +3,13 @@
     <div class="topbar">
       <p class="eyebrow">Random Radio</p>
 
-      <div class="favorites-menu">
-        <button
-          class="menu-button"
-          type="button"
-          aria-controls="favorites-menu-panel"
-          [attr.aria-expanded]="isFavoritesMenuOpen()"
-          (click)="toggleFavoritesMenu()"
-        >
-          <span class="menu-icon" aria-hidden="true"></span>
-          <span>Favorites</span>
-          <span class="favorite-count" aria-label="Favorite station count">
-            {{ favoriteStations().length }}
-          </span>
-        </button>
-
-        @if (isFavoritesMenuOpen()) {
-          <section
-            id="favorites-menu-panel"
-            class="favorites-panel"
-            aria-labelledby="favorites-title"
-          >
-            <h2 id="favorites-title">Favorites</h2>
-
-            @if (favoriteStations().length) {
-              <ul class="favorite-list">
-                @for (favorite of favoriteStations(); track favorite.stationuuid) {
-                  <li>
-                    <button
-                      class="favorite-station"
-                      type="button"
-                      [disabled]="isLoading()"
-                      (click)="playFavoriteStation(favorite)"
-                      [attr.aria-label]="'Play favorite station ' + favorite.name"
-                    >
-                      <span class="favorite-name">{{ favorite.name }}</span>
-                      @if (favorite.countrycode) {
-                        <span class="favorite-country">
-                          @if (countryFlag(favorite.countrycode); as flag) {
-                            <span aria-hidden="true">{{ flag }}</span>
-                          }
-                          {{ countryName(favorite.countrycode) }}
-                        </span>
-                      }
-                    </button>
-                  </li>
-                }
-              </ul>
-            } @else {
-              <p class="empty-favorites">Your favorite stations will show up here.</p>
-            }
-          </section>
-        }
-      </div>
+      <app-favorites-menu
+        [favorites]="favoriteStations()"
+        [isOpen]="isFavoritesMenuOpen()"
+        [isLoading]="isLoading()"
+        (menuToggled)="toggleFavoritesMenu()"
+        (stationSelected)="playFavoriteStation($event)"
+      ></app-favorites-menu>
     </div>
 
     <h1 id="page-title">Press play and land somewhere on the dial.</h1>
@@ -73,121 +27,28 @@
       }
     </button>
 
-    <div class="status" role="status" aria-live="polite">
-      @if (error()) {
-        <p class="error">{{ error() }}</p>
-      } @else if (isPlaying()) {
-        <p>Playing now.</p>
-      } @else if (isLoading() || isTuning()) {
-        <p>Tuning in...</p>
-      } @else if (station()) {
-        <p>Stopped.</p>
-      } @else {
-        <p>Ready when you are.</p>
-      }
-    </div>
+    <app-player-status
+      [error]="error()"
+      [isPlaying]="isPlaying()"
+      [isLoading]="isLoading()"
+      [isTuning]="isTuning()"
+      [hasStation]="station() !== null"
+    ></app-player-status>
 
     @if (station(); as currentStation) {
-      <article class="station" aria-label="Current station">
-        @let homepage = stationHomepage();
-        <ng-template #stationLogo>
-          @if (currentStation.favicon) {
-            <img
-              class="station-logo"
-              [src]="currentStation.favicon"
-              width="72"
-              height="72"
-              alt=""
-            >
-          } @else {
-            <span class="station-logo fallback" aria-hidden="true">RR</span>
-          }
-        </ng-template>
+      <app-station-card
+        [station]="currentStation"
+        [isFavorite]="isCurrentStationFavorite()"
+        (favoriteToggled)="toggleFavoriteStation($event)"
+      ></app-station-card>
 
-        @if (homepage) {
-          <a
-            class="station-logo-link"
-            [href]="homepage"
-            target="_blank"
-            rel="noopener noreferrer"
-            [attr.aria-label]="'Visit ' + currentStation.name + ' homepage'"
-          >
-            <ng-container [ngTemplateOutlet]="stationLogo"></ng-container>
-          </a>
-        } @else {
-          <ng-container [ngTemplateOutlet]="stationLogo"></ng-container>
-        }
-
-        <div class="station-details">
-          <h2>{{ currentStation.name }}</h2>
-          <p>
-            @if (currentStation.countrycode) {
-              @if (countryFlag(currentStation.countrycode); as flag) {
-                <span class="country-flag" aria-hidden="true">{{ flag }}</span>
-              }
-              {{ countryName(currentStation.countrycode) }}
-            }
-          </p>
-        </div>
-
-        <button
-          class="favorite-toggle"
-          type="button"
-          [class.is-favorite]="isCurrentStationFavorite()"
-          (click)="toggleFavoriteStation(currentStation)"
-          [attr.aria-pressed]="isCurrentStationFavorite()"
-          [attr.aria-label]="
-            isCurrentStationFavorite()
-              ? 'Remove ' + currentStation.name + ' from favorites'
-              : 'Add ' + currentStation.name + ' to favorites'
-          "
-          [attr.data-tooltip]="
-            isCurrentStationFavorite() ? 'Remove from favorites' : 'Add to favorites'
-          "
-        >
-          <span class="favorite-icon" aria-hidden="true"></span>
-        </button>
-      </article>
-
-      <div class="audio-controls" role="group" aria-label="Audio controls">
-        <button
-          class="playback-action"
-          type="button"
-          [disabled]="isLoading()"
-          (click)="handlePlaybackButton()"
-          [attr.aria-label]="isPlaying() ? 'Stop current station' : 'Start current station'"
-        >
-          @if (isPlaying()) {
-            <span class="stop-icon" aria-hidden="true"></span>
-          } @else {
-            <span class="play-icon" aria-hidden="true"></span>
-          }
-        </button>
-
-        <label class="volume-control">
-          <span class="visually-hidden">Volume</span>
-          <svg
-            class="volume-icon"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-            focusable="false"
-          >
-            <path d="M4 9v6h4l5 4V5L8 9H4z"></path>
-            <path d="M16 8.5a5 5 0 0 1 0 7"></path>
-            <path d="M18.5 6a8.5 8.5 0 0 1 0 12"></path>
-          </svg>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            [value]="volume()"
-            (input)="handleVolumeChange($event)"
-            aria-label="Volume"
-          >
-        </label>
-        <span class="volume-value" aria-hidden="true">{{ volumePercent() }}%</span>
-      </div>
+      <app-audio-controls
+        [isLoading]="isLoading()"
+        [isPlaying]="isPlaying()"
+        [volume]="volume()"
+        (playbackRequested)="handlePlaybackButton()"
+        (volumeChanged)="handleVolumeChange($event)"
+      ></app-audio-controls>
     }
 
     <audio

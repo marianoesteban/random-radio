@@ -1,11 +1,14 @@
-import { NgTemplateOutlet } from '@angular/common';
 import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { Title } from '@angular/platform-browser';
+import { AudioControls } from './components/audio-controls/audio-controls';
+import { FavoritesMenu } from './components/favorites-menu/favorites-menu';
+import { PlayerStatus } from './components/player-status/player-status';
+import { StationCard } from './components/station-card/station-card';
 import { RadioBrowser, RadioStation } from './radio-browser';
 
 @Component({
   selector: 'app-root',
-  imports: [NgTemplateOutlet],
+  imports: [AudioControls, FavoritesMenu, PlayerStatus, StationCard],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
@@ -14,24 +17,13 @@ export class App {
   private readonly title = inject(Title);
   private readonly defaultPageTitle = this.title.getTitle();
   private readonly audio = viewChild<ElementRef<HTMLAudioElement>>('audioPlayer');
-  private readonly regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
   private readonly favoritesStorageKey = 'random-radio:favorites';
 
   protected readonly station = signal<RadioStation | null>(null);
-  protected readonly stationHomepage = computed(() => {
-    const homepage = this.station()?.homepage.trim();
-
-    if (!homepage) {
-      return '';
-    }
-
-    return /^https?:\/\//i.test(homepage) ? homepage : '';
-  });
   protected readonly isLoading = signal(false);
   protected readonly isPlaying = signal(false);
   protected readonly isTuning = signal(false);
   protected readonly volume = signal(1);
-  protected readonly volumePercent = computed(() => Math.round(this.volume() * 100));
   protected readonly error = signal('');
   protected readonly isFavoritesMenuOpen = signal(false);
   protected readonly favoriteStations = signal<RadioStation[]>(this.loadFavoriteStations());
@@ -81,7 +73,11 @@ export class App {
   }
 
   protected toggleFavoriteStation(station: RadioStation): void {
-    if (this.isCurrentStationFavorite()) {
+    const isFavorite = this.favoriteStations().some(
+      (favorite) => favorite.stationuuid === station.stationuuid,
+    );
+
+    if (isFavorite) {
       this.favoriteStations.update((favorites) =>
         favorites.filter((favorite) => favorite.stationuuid !== station.stationuuid),
       );
@@ -160,15 +156,7 @@ export class App {
     }
   }
 
-  protected handleVolumeChange(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const nextVolume = Number(input.value);
-
-    if (!Number.isFinite(nextVolume)) {
-      return;
-    }
-
-    const volume = Math.min(1, Math.max(0, nextVolume));
+  protected handleVolumeChange(volume: number): void {
     const audio = this.audio()?.nativeElement;
 
     this.volume.set(volume);
@@ -199,26 +187,6 @@ export class App {
     this.isTuning.set(false);
   }
 
-  protected countryName(countryCode: string): string {
-    try {
-      return this.regionNames.of(countryCode.toUpperCase()) ?? countryCode;
-    } catch {
-      return countryCode;
-    }
-  }
-
-  protected countryFlag(countryCode: string): string {
-    const normalizedCode = countryCode.trim().toUpperCase();
-
-    if (!/^[A-Z]{2}$/.test(normalizedCode)) {
-      return '';
-    }
-
-    return String.fromCodePoint(
-      ...[...normalizedCode].map((letter) => letter.codePointAt(0)! + 127397),
-    );
-  }
-
   private currentStreamUrl(): string {
     const station = this.station();
 
@@ -233,13 +201,17 @@ export class App {
 
   private loadFavoriteStations(): RadioStation[] {
     try {
-      const favorites = JSON.parse(localStorage.getItem(this.favoritesStorageKey) ?? '[]') as unknown;
+      const favorites = JSON.parse(
+        localStorage.getItem(this.favoritesStorageKey) ?? '[]',
+      ) as unknown;
 
       if (!Array.isArray(favorites)) {
         return [];
       }
 
-      return favorites.filter((favorite): favorite is RadioStation => this.isRadioStation(favorite));
+      return favorites.filter((favorite): favorite is RadioStation =>
+        this.isRadioStation(favorite),
+      );
     } catch {
       return [];
     }

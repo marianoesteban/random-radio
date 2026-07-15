@@ -1,0 +1,6 @@
+@if (countryName(); as name) {
+  @if (countryFlag(); as flag) {
+    <span class="country-flag" aria-hidden="true">{{ flag }}</span>
+  }
+  {{ name }}
+}

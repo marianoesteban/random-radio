@@ -1,0 +1,157 @@
+:host {
+  display: block;
+}
+
+h2,
+p {
+  margin-block: 0;
+}
+
+.favorites-menu {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.menu-button {
+  display: inline-flex;
+  gap: 0.45rem;
+  align-items: center;
+  min-height: 2.35rem;
+  border: 1px solid rgb(24 32 27 / 14%);
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  color: #25372e;
+  background: rgb(255 253 248 / 78%);
+  box-shadow: 0 0.35rem 0.9rem rgb(24 32 27 / 6%);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.menu-button:hover {
+  border-color: rgb(23 107 79 / 34%);
+  background: #fffdf8;
+}
+
+.menu-button:focus-visible,
+.favorite-station:focus-visible {
+  outline: 0.2rem solid #1b1f8f;
+  outline-offset: 0.25rem;
+}
+
+.menu-icon {
+  width: 0.9rem;
+  height: 0.65rem;
+  border-block: 0.14rem solid currentColor;
+}
+
+.menu-icon::before {
+  display: block;
+  height: 0.14rem;
+  margin-top: 0.2rem;
+  background: currentColor;
+  content: '';
+}
+
+.favorite-count {
+  display: grid;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 999rem;
+  place-items: center;
+  color: #fffdf8;
+  background: #176b4f;
+  font-size: 0.78rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.favorites-panel {
+  position: absolute;
+  inset-block-start: calc(100% + 0.5rem);
+  inset-inline-end: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(21rem, calc(100vw - 2.5rem));
+  max-height: min(24rem, calc(100dvh - 5rem));
+  border: 1px solid rgb(24 32 27 / 14%);
+  border-radius: 0.5rem;
+  padding: 0.85rem;
+  background: #fffdf8;
+  box-shadow: 0 1rem 2.2rem rgb(24 32 27 / 18%);
+  overflow: hidden;
+}
+
+.favorites-panel h2 {
+  color: #25372e;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.favorite-list {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0.75rem 0 0;
+  padding: 0 0.75rem 0 0;
+  list-style: none;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.favorite-station {
+  display: grid;
+  width: 100%;
+  min-height: 3.4rem;
+  border: 1px solid rgb(24 32 27 / 12%);
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  color: #18201b;
+  background: rgb(255 253 248 / 74%);
+  box-shadow: 0 0.35rem 0.9rem rgb(24 32 27 / 6%);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.favorite-station:hover {
+  border-color: rgb(23 107 79 / 34%);
+  background: #fffdf8;
+}
+
+.favorite-station:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.favorite-name {
+  overflow-wrap: anywhere;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.favorite-country {
+  margin-top: 0.25rem;
+  color: #52685b;
+  font-size: 0.88rem;
+}
+
+.empty-favorites {
+  margin-top: 0.75rem;
+  color: #52685b;
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+
+@media (max-width: 34rem) {
+  .menu-button {
+    min-height: 2.1rem;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.84rem;
+  }
+
+  .favorites-panel {
+    width: min(19rem, calc(100vw - 1.5rem));
+    max-height: calc(100dvh - 4rem);
+  }
+}
