@@ -15,6 +15,7 @@ export class App {
   private readonly defaultPageTitle = this.title.getTitle();
   private readonly audio = viewChild<ElementRef<HTMLAudioElement>>('audioPlayer');
   private readonly regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+  private readonly favoritesStorageKey = 'random-radio:favorites';
 
   protected readonly station = signal<RadioStation | null>(null);
   protected readonly stationHomepage = computed(() => {
@@ -32,6 +33,15 @@ export class App {
   protected readonly volume = signal(1);
   protected readonly volumePercent = computed(() => Math.round(this.volume() * 100));
   protected readonly error = signal('');
+  protected readonly isFavoritesMenuOpen = signal(false);
+  protected readonly favoriteStations = signal<RadioStation[]>(this.loadFavoriteStations());
+  protected readonly isCurrentStationFavorite = computed(() => {
+    const stationUuid = this.station()?.stationuuid;
+
+    return stationUuid
+      ? this.favoriteStations().some((favorite) => favorite.stationuuid === stationUuid)
+      : false;
+  });
 
   protected async handlePlaybackButton(): Promise<void> {
     if (!this.station()) {
@@ -57,6 +67,41 @@ export class App {
 
       this.station.set(station);
       this.updatePageTitle(station.name);
+      await this.playCurrentStation(station);
+    } catch {
+      this.isTuning.set(false);
+      this.error.set('The station could not be played. Try another one.');
+    } finally {
+      this.isLoading.set(false);
+    }
+  }
+
+  protected toggleFavoritesMenu(): void {
+    this.isFavoritesMenuOpen.update((isOpen) => !isOpen);
+  }
+
+  protected toggleFavoriteStation(station: RadioStation): void {
+    if (this.isCurrentStationFavorite()) {
+      this.favoriteStations.update((favorites) =>
+        favorites.filter((favorite) => favorite.stationuuid !== station.stationuuid),
+      );
+    } else {
+      this.favoriteStations.update((favorites) => [station, ...favorites]);
+    }
+
+    this.saveFavoriteStations();
+  }
+
+  protected async playFavoriteStation(station: RadioStation): Promise<void> {
+    this.isLoading.set(true);
+    this.isPlaying.set(false);
+    this.isTuning.set(true);
+    this.error.set('');
+    this.station.set(station);
+    this.updatePageTitle(station.name);
+    this.isFavoritesMenuOpen.set(false);
+
+    try {
       await this.playCurrentStation(station);
     } catch {
       this.isTuning.set(false);
@@ -184,5 +229,49 @@ export class App {
     const name = stationName.trim();
 
     this.title.setTitle(name ? `Random Radio - ${name}` : this.defaultPageTitle);
+  }
+
+  private loadFavoriteStations(): RadioStation[] {
+    try {
+      const favorites = JSON.parse(localStorage.getItem(this.favoritesStorageKey) ?? '[]') as unknown;
+
+      if (!Array.isArray(favorites)) {
+        return [];
+      }
+
+      return favorites.filter((favorite): favorite is RadioStation => this.isRadioStation(favorite));
+    } catch {
+      return [];
+    }
+  }
+
+  private saveFavoriteStations(): void {
+    try {
+      localStorage.setItem(this.favoritesStorageKey, JSON.stringify(this.favoriteStations()));
+    } catch {
+      this.error.set('Favorites could not be saved in this browser.');
+    }
+  }
+
+  private isRadioStation(value: unknown): value is RadioStation {
+    if (!value || typeof value !== 'object') {
+      return false;
+    }
+
+    const station = value as Record<string, unknown>;
+
+    return (
+      typeof station['stationuuid'] === 'string' &&
+      typeof station['name'] === 'string' &&
+      typeof station['url'] === 'string' &&
+      typeof station['url_resolved'] === 'string' &&
+      typeof station['homepage'] === 'string' &&
+      typeof station['favicon'] === 'string' &&
+      typeof station['countrycode'] === 'string' &&
+      typeof station['language'] === 'string' &&
+      typeof station['tags'] === 'string' &&
+      typeof station['codec'] === 'string' &&
+      typeof station['bitrate'] === 'number'
+    );
   }
 }

@@ -39,6 +39,7 @@ describe('App', () => {
 
   beforeEach(async () => {
     document.title = 'Random Radio - Discover Live Stations';
+    localStorage.clear();
     radioBrowser = {
       getRandomStation: vi.fn(),
       streamUrl: vi.fn((station) => station.url_resolved || station.url),
@@ -200,6 +201,100 @@ describe('App', () => {
 
     expect(audio.volume).toBe(0.35);
     expect(volumeValue.textContent).toContain('35%');
+  });
+
+  it('should save and remove the current station as a favorite', async () => {
+    const station = createStation();
+    radioBrowser.getRandomStation.mockResolvedValue(station);
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    const randomButton = fixture.nativeElement.querySelector('.primary-action') as HTMLButtonElement;
+    randomButton.click();
+
+    await fixture.whenStable();
+    await flushPromises();
+    fixture.detectChanges();
+
+    const favoriteButton = fixture.nativeElement.querySelector(
+      '.favorite-toggle',
+    ) as HTMLButtonElement;
+
+    expect(favoriteButton.getAttribute('aria-pressed')).toBe('false');
+    expect(favoriteButton.getAttribute('aria-label')).toBe('Add Station One to favorites');
+    expect(favoriteButton.dataset['tooltip']).toBe('Add to favorites');
+
+    favoriteButton.click();
+    fixture.detectChanges();
+
+    let favorites = JSON.parse(
+      localStorage.getItem('random-radio:favorites') ?? '[]',
+    ) as RadioStation[];
+
+    expect(favorites).toEqual([station]);
+    expect(favoriteButton.getAttribute('aria-pressed')).toBe('true');
+    expect(favoriteButton.getAttribute('aria-label')).toBe('Remove Station One from favorites');
+    expect(favoriteButton.dataset['tooltip']).toBe('Remove from favorites');
+    expect(fixture.nativeElement.querySelector('.favorite-station')).toBeNull();
+
+    const menuButton = fixture.nativeElement.querySelector('.menu-button') as HTMLButtonElement;
+    menuButton.click();
+    fixture.detectChanges();
+
+    let favoriteStation = fixture.nativeElement.querySelector('.favorite-station') as HTMLElement;
+    expect(favoriteStation.textContent).toContain('Station One');
+
+    favoriteButton.click();
+    fixture.detectChanges();
+
+    favorites = JSON.parse(localStorage.getItem('random-radio:favorites') ?? '[]') as RadioStation[];
+    favoriteStation = fixture.nativeElement.querySelector('.favorite-station') as HTMLElement;
+
+    expect(favorites).toEqual([]);
+    expect(favoriteStation).toBeNull();
+    expect(favoriteButton.getAttribute('aria-pressed')).toBe('false');
+    expect(favoriteButton.getAttribute('aria-label')).toBe('Add Station One to favorites');
+    expect(favoriteButton.dataset['tooltip']).toBe('Add to favorites');
+  });
+
+  it('should load favorite stations and play one when selected', async () => {
+    const station = createStation({ stationuuid: 'favorite-1', name: 'Saved Station' });
+    localStorage.setItem('random-radio:favorites', JSON.stringify([station]));
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    const menuButton = fixture.nativeElement.querySelector('.menu-button') as HTMLButtonElement;
+    expect(menuButton.getAttribute('aria-expanded')).toBe('false');
+    expect(fixture.nativeElement.querySelector('.favorite-station')).toBeNull();
+
+    menuButton.click();
+    fixture.detectChanges();
+
+    const favoriteButton = fixture.nativeElement.querySelector(
+      '.favorite-station',
+    ) as HTMLButtonElement;
+
+    expect(favoriteButton.textContent).toContain('Saved Station');
+    expect(menuButton.getAttribute('aria-expanded')).toBe('true');
+
+    favoriteButton.click();
+
+    await fixture.whenStable();
+    await flushPromises();
+    fixture.detectChanges();
+
+    const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
+    const stationCard = fixture.nativeElement.querySelector('.station') as HTMLElement;
+
+    expect(radioBrowser.getRandomStation).not.toHaveBeenCalled();
+    expect(radioBrowser.streamUrl).toHaveBeenCalledWith(station);
+    expect(audio.src).toBe('https://stream.example.com/live');
+    expect(loadAudio).toHaveBeenCalledOnce();
+    expect(playAudio).toHaveBeenCalledOnce();
+    expect(radioBrowser.reportStationClick).toHaveBeenCalledWith('favorite-1');
+    expect(title.getTitle()).toBe('Random Radio - Saved Station');
+    expect(stationCard.textContent).toContain('Saved Station');
+    expect(fixture.nativeElement.querySelector('.favorites-panel')).toBeNull();
   });
 
   it('should not render a homepage link when the station homepage is missing', async () => {
