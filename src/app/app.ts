@@ -5,6 +5,7 @@ import { FavoritesMenu } from './components/favorites-menu/favorites-menu';
 import { PlayerStatus } from './components/player-status/player-status';
 import { StationCard } from './components/station-card/station-card';
 import { RadioBrowser, RadioStation } from './services/radio-browser';
+import { FavoritesStore } from './stores/favorites-store';
 
 @Component({
   selector: 'app-root',
@@ -14,9 +15,9 @@ import { RadioBrowser, RadioStation } from './services/radio-browser';
 })
 export class App {
   private readonly radioBrowser = inject(RadioBrowser);
+  private readonly favoritesStore = inject(FavoritesStore);
   private readonly title = inject(Title);
   private readonly defaultPageTitle = this.title.getTitle();
-  private readonly favoritesStorageKey = 'random-radio:favorites';
 
   protected readonly station = signal<RadioStation | null>(null);
   protected readonly isLoading = signal(false);
@@ -28,8 +29,10 @@ export class App {
     error: '',
   });
   protected readonly isFavoritesMenuOpen = signal(false);
-  protected readonly favoriteStations = signal<RadioStation[]>(this.loadFavoriteStations());
-  protected readonly statusError = computed(() => this.error() || this.playerState().error);
+  protected readonly favoriteStations = this.favoritesStore.stations;
+  protected readonly statusError = computed(
+    () => this.error() || this.favoritesStore.persistenceError() || this.playerState().error,
+  );
   protected readonly isStatusPlaying = computed(() =>
     this.isLoading() ? false : this.playerState().isPlaying,
   );
@@ -39,9 +42,7 @@ export class App {
   protected readonly isCurrentStationFavorite = computed(() => {
     const stationUuid = this.station()?.stationuuid;
 
-    return stationUuid
-      ? this.favoriteStations().some((favorite) => favorite.stationuuid === stationUuid)
-      : false;
+    return stationUuid ? this.favoritesStore.isFavorite(stationUuid) : false;
   });
 
   protected async playRandomStation(): Promise<void> {
@@ -65,19 +66,7 @@ export class App {
   }
 
   protected toggleFavoriteStation(station: RadioStation): void {
-    const isFavorite = this.favoriteStations().some(
-      (favorite) => favorite.stationuuid === station.stationuuid,
-    );
-
-    if (isFavorite) {
-      this.favoriteStations.update((favorites) =>
-        favorites.filter((favorite) => favorite.stationuuid !== station.stationuuid),
-      );
-    } else {
-      this.favoriteStations.update((favorites) => [station, ...favorites]);
-    }
-
-    this.saveFavoriteStations();
+    this.favoritesStore.toggle(station);
   }
 
   protected playFavoriteStation(station: RadioStation): void {
@@ -105,53 +94,5 @@ export class App {
 
   private resetPlayerState(): void {
     this.playerState.set({ isPlaying: false, isTuning: false, error: '' });
-  }
-
-  private loadFavoriteStations(): RadioStation[] {
-    try {
-      const favorites = JSON.parse(
-        localStorage.getItem(this.favoritesStorageKey) ?? '[]',
-      ) as unknown;
-
-      if (!Array.isArray(favorites)) {
-        return [];
-      }
-
-      return favorites.filter((favorite): favorite is RadioStation =>
-        this.isRadioStation(favorite),
-      );
-    } catch {
-      return [];
-    }
-  }
-
-  private saveFavoriteStations(): void {
-    try {
-      localStorage.setItem(this.favoritesStorageKey, JSON.stringify(this.favoriteStations()));
-    } catch {
-      this.error.set('Favorites could not be saved in this browser.');
-    }
-  }
-
-  private isRadioStation(value: unknown): value is RadioStation {
-    if (!value || typeof value !== 'object') {
-      return false;
-    }
-
-    const station = value as Record<string, unknown>;
-
-    return (
-      typeof station['stationuuid'] === 'string' &&
-      typeof station['name'] === 'string' &&
-      typeof station['url'] === 'string' &&
-      typeof station['url_resolved'] === 'string' &&
-      typeof station['homepage'] === 'string' &&
-      typeof station['favicon'] === 'string' &&
-      typeof station['countrycode'] === 'string' &&
-      typeof station['language'] === 'string' &&
-      typeof station['tags'] === 'string' &&
-      typeof station['codec'] === 'string' &&
-      typeof station['bitrate'] === 'number'
-    );
   }
 }
