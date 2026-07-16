@@ -28,10 +28,10 @@
     </button>
 
     <app-player-status
-      [error]="error()"
-      [isPlaying]="isPlaying()"
+      [error]="statusError()"
+      [isPlaying]="isStatusPlaying()"
       [isLoading]="isLoading()"
-      [isTuning]="isTuning()"
+      [isTuning]="isStatusTuning()"
       [hasStation]="station() !== null"
     ></app-player-status>
 
@@ -42,26 +42,12 @@
         (favoriteToggled)="toggleFavoriteStation($event)"
       ></app-station-card>
 
-      <app-audio-controls
+      <app-audio-player
         [isLoading]="isLoading()"
-        [isPlaying]="isPlaying()"
-        [volume]="volume()"
-        (playbackRequested)="handlePlaybackButton()"
-        (volumeChanged)="handleVolumeChange($event)"
-      ></app-audio-controls>
+        [station]="currentStation"
+        [playRequestId]="playRequestId()"
+        (playerStateChanged)="handlePlayerStateChange($event)"
+      ></app-audio-player>
     }
-
-    <audio
-      #audioPlayer
-      class="audio"
-      autoplay
-      aria-label="Radio station audio player"
-      (error)="handleAudioError()"
-      (playing)="handleAudioPlaying()"
-      (pause)="handleAudioStopped()"
-      (ended)="handleAudioStopped()"
-    >
-      Your browser does not support the audio element.
-    </audio>
   </section>
 </main>

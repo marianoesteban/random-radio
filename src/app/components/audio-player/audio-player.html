@@ -1,0 +1,20 @@
+<app-audio-controls
+  [isLoading]="isLoading()"
+  [isPlaying]="isPlaying()"
+  [volume]="volume()"
+  (playbackRequested)="handlePlaybackButton()"
+  (volumeChanged)="handleVolumeChange($event)"
+></app-audio-controls>
+
+<audio
+  #audioPlayer
+  class="audio"
+  autoplay
+  aria-label="Radio station audio player"
+  (error)="handleAudioError()"
+  (playing)="handleAudioPlaying()"
+  (pause)="handleAudioStopped()"
+  (ended)="handleAudioStopped()"
+>
+  Your browser does not support the audio element.
+</audio>

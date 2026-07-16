@@ -68,6 +68,12 @@ describe('App', () => {
     return fixture;
   }
 
+  async function settlePlayback(fixture: ComponentFixture<App>): Promise<void> {
+    await fixture.whenStable();
+    await flushPromises();
+    fixture.detectChanges();
+  }
+
   async function playRandomStation(
     fixture: ComponentFixture<App>,
     station = createStation(),
@@ -77,9 +83,8 @@ describe('App', () => {
     const button = fixture.nativeElement.querySelector('.primary-action') as HTMLButtonElement;
     button.click();
 
-    await fixture.whenStable();
-    await flushPromises();
-    fixture.detectChanges();
+    await settlePlayback(fixture);
+    await settlePlayback(fixture);
 
     return fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
   }
@@ -106,9 +111,8 @@ describe('App', () => {
     expect(button.disabled).toBe(true);
     expect(button.textContent).toContain('Loading...');
 
-    await fixture.whenStable();
-    await flushPromises();
-    fixture.detectChanges();
+    await settlePlayback(fixture);
+    await settlePlayback(fixture);
 
     const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
 
@@ -206,10 +210,9 @@ describe('App', () => {
       '.favorite-station',
     ) as HTMLButtonElement;
     favoriteButton.click();
-
-    await fixture.whenStable();
-    await flushPromises();
     fixture.detectChanges();
+
+    await settlePlayback(fixture);
 
     const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
 
@@ -264,14 +267,12 @@ describe('App', () => {
 
   it('should show a stream error only after a station has been selected', async () => {
     const fixture = createFixture();
-    const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
-    audio.dispatchEvent(new Event('error'));
-    fixture.detectChanges();
 
     let status = fixture.nativeElement.querySelector('.status') as HTMLElement;
+    expect(fixture.nativeElement.querySelector('audio')).toBeNull();
     expect(status.textContent).toContain('Ready when you are.');
 
-    await playRandomStation(fixture);
+    const audio = await playRandomStation(fixture);
 
     audio.dispatchEvent(new Event('error'));
     fixture.detectChanges();
