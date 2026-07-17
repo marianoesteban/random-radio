@@ -92,7 +92,15 @@ export class App {
 
   protected playFavoriteStation(station: RadioStation): void {
     this.error.set('');
-    this.selectStation(station);
+
+    const currentStation = this.selection()?.station;
+    const isCurrentStationPlaying =
+      currentStation?.stationuuid === station.stationuuid && this.playerState().isPlaying;
+
+    if (!isCurrentStationPlaying) {
+      this.selectStation(station);
+    }
+
     this.isFavoritesMenuOpen.set(false);
   }
 
