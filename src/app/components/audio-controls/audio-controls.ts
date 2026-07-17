@@ -6,7 +6,7 @@ import { Component, computed, input, output } from '@angular/core';
   styleUrl: './audio-controls.css',
 })
 export class AudioControls {
-  readonly isLoading = input.required<boolean>();
+  readonly disabled = input(false);
   readonly isPlaying = input.required<boolean>();
   readonly volume = input.required<number>();
   readonly playbackRequested = output<void>();

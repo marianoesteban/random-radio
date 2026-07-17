@@ -2,9 +2,9 @@
   <button
     class="playback-action"
     type="button"
-    [disabled]="isLoading()"
+    [disabled]="disabled()"
     (click)="requestPlayback()"
-    [attr.aria-label]="isPlaying() ? 'Stop current station' : 'Start current station'"
+    [attr.aria-label]="isPlaying() ? 'Pause audio' : 'Play audio'"
   >
     @if (isPlaying()) {
       <span class="stop-icon" aria-hidden="true"></span>

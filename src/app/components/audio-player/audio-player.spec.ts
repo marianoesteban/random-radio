@@ -1,21 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { type Mock, type MockInstance, vi } from 'vitest';
-import { RadioBrowser, RadioStation } from '../../services/radio-browser';
-import { AudioPlayer } from './audio-player';
+import { AudioPlayer, AudioSource } from './audio-player';
 
-function createStation(overrides: Partial<RadioStation> = {}): RadioStation {
+function createSource(overrides: Partial<AudioSource> = {}): AudioSource {
   return {
-    stationuuid: 'station-1',
-    name: 'Station One',
-    url: 'https://example.com/live',
-    url_resolved: 'https://stream.example.com/live',
-    homepage: 'https://example.com',
-    favicon: '',
-    countrycode: 'AR',
-    language: 'Spanish',
-    tags: 'music',
-    codec: 'MP3',
-    bitrate: 128,
+    url: 'https://stream.example.com/live',
     ...overrides,
   };
 }
@@ -26,26 +15,17 @@ async function flushPromises(): Promise<void> {
 }
 
 describe('AudioPlayer', () => {
-  let radioBrowser: {
-    streamUrl: Mock<(station: RadioStation) => string>;
-    reportStationClick: Mock<(stationUuid: string) => Promise<void>>;
-  };
   let loadAudio: MockInstance<() => void>;
   let playAudio: MockInstance<() => Promise<void>>;
   let pauseAudio: MockInstance<() => void>;
 
   beforeEach(async () => {
-    radioBrowser = {
-      streamUrl: vi.fn((station) => station.url_resolved || station.url),
-      reportStationClick: vi.fn(() => Promise.resolve()),
-    };
     loadAudio = vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => undefined);
     playAudio = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
     pauseAudio = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined);
 
     await TestBed.configureTestingModule({
       imports: [AudioPlayer],
-      providers: [{ provide: RadioBrowser, useValue: radioBrowser }],
     }).compileComponents();
   });
 
@@ -53,20 +33,22 @@ describe('AudioPlayer', () => {
     vi.restoreAllMocks();
   });
 
-  function createFixture(station = createStation()): {
+  function createFixture(source = createSource()): {
     fixture: ComponentFixture<AudioPlayer>;
     stateHandler: Mock;
+    playbackStartedHandler: Mock;
   } {
     const fixture = TestBed.createComponent(AudioPlayer);
     const stateHandler = vi.fn();
+    const playbackStartedHandler = vi.fn();
 
     fixture.componentInstance.playerStateChanged.subscribe(stateHandler);
-    fixture.componentRef.setInput('station', station);
-    fixture.componentRef.setInput('isLoading', false);
-    fixture.componentRef.setInput('playRequestId', 1);
+    fixture.componentInstance.playbackStarted.subscribe(playbackStartedHandler);
+    fixture.componentRef.setInput('source', source);
+    fixture.componentRef.setInput('disabled', false);
     fixture.detectChanges();
 
-    return { fixture, stateHandler };
+    return { fixture, stateHandler, playbackStartedHandler };
   }
 
   async function settlePlayback(fixture: ComponentFixture<AudioPlayer>): Promise<void> {
@@ -76,28 +58,27 @@ describe('AudioPlayer', () => {
   }
 
   it('should render controls and play the selected station', async () => {
-    const station = createStation();
-    const { fixture, stateHandler } = createFixture(station);
+    const source = createSource();
+    const { fixture, stateHandler, playbackStartedHandler } = createFixture(source);
 
     await settlePlayback(fixture);
 
     const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
 
     expect(fixture.nativeElement.querySelector('app-audio-controls')).not.toBeNull();
-    expect(radioBrowser.streamUrl).toHaveBeenCalledWith(station);
     expect(audio.src).toBe('https://stream.example.com/live');
     expect(audio.hasAttribute('controls')).toBe(false);
     expect(loadAudio).toHaveBeenCalledOnce();
     expect(playAudio).toHaveBeenCalledOnce();
-    expect(radioBrowser.reportStationClick).toHaveBeenCalledWith('station-1');
+    expect(playbackStartedHandler).toHaveBeenCalledWith(source);
     expect(stateHandler).toHaveBeenCalledWith({
       isPlaying: false,
-      isTuning: true,
-      error: '',
+      isBuffering: true,
+      error: null,
     });
   });
 
-  it('should pause and resume the current station', async () => {
+  it('should pause and resume playback', async () => {
     const { fixture } = createFixture();
 
     await settlePlayback(fixture);
@@ -114,13 +95,13 @@ describe('AudioPlayer', () => {
     fixture.detectChanges();
 
     expect(pauseAudio).toHaveBeenCalledOnce();
-    expect(playbackButton.getAttribute('aria-label')).toBe('Start current station');
+    expect(playbackButton.getAttribute('aria-label')).toBe('Play audio');
 
     playbackButton.click();
     await settlePlayback(fixture);
 
     expect(playAudio).toHaveBeenCalledTimes(2);
-    expect(playbackButton.getAttribute('aria-label')).toBe('Stop current station');
+    expect(playbackButton.getAttribute('aria-label')).toBe('Pause audio');
   });
 
   it('should update the audio volume from the controls', async () => {
@@ -140,19 +121,14 @@ describe('AudioPlayer', () => {
     expect(audio.volume).toBe(0.35);
   });
 
-  it('should play again when a new play request arrives', async () => {
+  it('should play again when a new source is selected', async () => {
     const { fixture } = createFixture();
 
     await settlePlayback(fixture);
 
-    const nextStation = createStation({
-      stationuuid: 'station-2',
-      name: 'Station Two',
-      url_resolved: 'https://stream.example.com/two',
-    });
+    const nextSource = createSource({ url: 'https://stream.example.com/two' });
 
-    fixture.componentRef.setInput('station', nextStation);
-    fixture.componentRef.setInput('playRequestId', 2);
+    fixture.componentRef.setInput('source', nextSource);
     fixture.detectChanges();
     await settlePlayback(fixture);
 
@@ -161,21 +137,58 @@ describe('AudioPlayer', () => {
     expect(audio.src).toBe('https://stream.example.com/two');
     expect(loadAudio).toHaveBeenCalledTimes(2);
     expect(playAudio).toHaveBeenCalledTimes(2);
-    expect(radioBrowser.reportStationClick).toHaveBeenCalledWith('station-2');
+  });
+
+  it('should replay when the same URL is selected in a new source', async () => {
+    const { fixture } = createFixture();
+
+    await settlePlayback(fixture);
+
+    fixture.componentRef.setInput('source', createSource());
+    fixture.detectChanges();
+    await settlePlayback(fixture);
+
+    expect(loadAudio).toHaveBeenCalledTimes(2);
+    expect(playAudio).toHaveBeenCalledTimes(2);
+  });
+
+  it('should ignore playback completion from a replaced source', async () => {
+    let finishFirstPlayback = (): void => undefined;
+    const firstPlayback = new Promise<void>((resolve) => {
+      finishFirstPlayback = resolve;
+    });
+    const firstSource = createSource();
+    const nextSource = createSource({ url: 'https://stream.example.com/two' });
+
+    playAudio.mockReturnValueOnce(firstPlayback).mockResolvedValueOnce(undefined);
+
+    const { fixture, playbackStartedHandler } = createFixture(firstSource);
+
+    fixture.componentRef.setInput('source', nextSource);
+    fixture.detectChanges();
+    await flushPromises();
+
+    expect(playbackStartedHandler).toHaveBeenCalledOnce();
+    expect(playbackStartedHandler).toHaveBeenCalledWith(nextSource);
+
+    finishFirstPlayback();
+    await flushPromises();
+
+    expect(playbackStartedHandler).toHaveBeenCalledOnce();
   });
 
   it('should emit an error when playback fails', async () => {
     playAudio.mockRejectedValue(new Error('blocked'));
 
-    const { fixture, stateHandler } = createFixture();
+    const { fixture, stateHandler, playbackStartedHandler } = createFixture();
 
     await settlePlayback(fixture);
 
-    expect(radioBrowser.reportStationClick).not.toHaveBeenCalled();
+    expect(playbackStartedHandler).not.toHaveBeenCalled();
     expect(stateHandler).toHaveBeenCalledWith({
       isPlaying: false,
-      isTuning: false,
-      error: 'The station could not be played. Try another one.',
+      isBuffering: false,
+      error: 'playback-failed',
     });
   });
 
@@ -190,8 +203,8 @@ describe('AudioPlayer', () => {
 
     expect(stateHandler).toHaveBeenCalledWith({
       isPlaying: false,
-      isTuning: false,
-      error: 'This stream stopped responding. Try another station.',
+      isBuffering: false,
+      error: 'stream-failed',
     });
   });
 });

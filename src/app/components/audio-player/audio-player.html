@@ -1,5 +1,5 @@
 <app-audio-controls
-  [isLoading]="isLoading()"
+  [disabled]="disabled()"
   [isPlaying]="isPlaying()"
   [volume]="volume()"
   (playbackRequested)="handlePlaybackButton()"
@@ -10,7 +10,7 @@
   #audioPlayer
   class="audio"
   autoplay
-  aria-label="Radio station audio player"
+  aria-label="Audio player"
   (error)="handleAudioError()"
   (playing)="handleAudioPlaying()"
   (pause)="handleAudioStopped()"

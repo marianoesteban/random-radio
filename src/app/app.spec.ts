@@ -226,6 +226,28 @@ describe('App', () => {
     expect(fixture.nativeElement.querySelector('.favorites-panel')).toBeNull();
   });
 
+  it('should replay a favorite when the same station is selected again', async () => {
+    const station = createStation({ stationuuid: 'favorite-1' });
+    localStorage.setItem('random-radio:favorites', JSON.stringify([station]));
+    const fixture = createFixture();
+    const menuButton = fixture.nativeElement.querySelector('.menu-button') as HTMLButtonElement;
+
+    menuButton.click();
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('.favorite-station') as HTMLButtonElement).click();
+    await settlePlayback(fixture);
+
+    menuButton.click();
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('.favorite-station') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await settlePlayback(fixture);
+
+    expect(loadAudio).toHaveBeenCalledTimes(2);
+    expect(playAudio).toHaveBeenCalledTimes(2);
+    expect(radioBrowser.reportStationClick).toHaveBeenCalledTimes(2);
+  });
+
   it('should show an error and reset loading when a station cannot be fetched', async () => {
     radioBrowser.getRandomStation.mockRejectedValue(new Error('offline'));
     const fixture = createFixture();

@@ -1,11 +1,27 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Title } from '@angular/platform-browser';
-import { AudioPlayer, AudioPlayerState } from './components/audio-player/audio-player';
+import {
+  AudioPlayer,
+  AudioPlayerError,
+  AudioPlayerState,
+  AudioSource,
+} from './components/audio-player/audio-player';
 import { FavoritesMenu } from './components/favorites-menu/favorites-menu';
 import { PlayerStatus } from './components/player-status/player-status';
 import { StationCard } from './components/station-card/station-card';
 import { RadioBrowser, RadioStation } from './services/radio-browser';
 import { FavoritesStore } from './stores/favorites-store';
+
+interface StationSelection {
+  readonly station: RadioStation;
+  readonly source: AudioSource;
+}
+
+const audioPlayerErrorMessages: Record<AudioPlayerError, string> = {
+  'player-unavailable': 'The audio player is not available.',
+  'playback-failed': 'The station could not be played. Try another one.',
+  'stream-failed': 'This stream stopped responding. Try another station.',
+};
 
 @Component({
   selector: 'app-root',
@@ -19,28 +35,33 @@ export class App {
   private readonly title = inject(Title);
   private readonly defaultPageTitle = this.title.getTitle();
 
-  protected readonly station = signal<RadioStation | null>(null);
+  protected readonly selection = signal<StationSelection | null>(null);
   protected readonly isLoading = signal(false);
   protected readonly error = signal('');
-  protected readonly playRequestId = signal(0);
   protected readonly playerState = signal<AudioPlayerState>({
     isPlaying: false,
-    isTuning: false,
-    error: '',
+    isBuffering: false,
+    error: null,
   });
   protected readonly isFavoritesMenuOpen = signal(false);
   protected readonly favoriteStations = this.favoritesStore.stations;
-  protected readonly statusError = computed(
-    () => this.error() || this.favoritesStore.persistenceError() || this.playerState().error,
-  );
+  protected readonly statusError = computed(() => {
+    const playerError = this.playerState().error;
+
+    return (
+      this.error() ||
+      this.favoritesStore.persistenceError() ||
+      (playerError ? audioPlayerErrorMessages[playerError] : '')
+    );
+  });
   protected readonly isStatusPlaying = computed(() =>
     this.isLoading() ? false : this.playerState().isPlaying,
   );
   protected readonly isStatusTuning = computed(() =>
-    this.isLoading() ? false : this.playerState().isTuning,
+    this.isLoading() ? false : this.playerState().isBuffering,
   );
   protected readonly isCurrentStationFavorite = computed(() => {
-    const stationUuid = this.station()?.stationuuid;
+    const stationUuid = this.selection()?.station.stationuuid;
 
     return stationUuid ? this.favoritesStore.isFavorite(stationUuid) : false;
   });
@@ -79,6 +100,10 @@ export class App {
     this.playerState.set(state);
   }
 
+  protected handlePlaybackStarted(stationUuid: string): void {
+    this.radioBrowser.reportStationClick(stationUuid).catch(() => undefined);
+  }
+
   private updatePageTitle(stationName: string): void {
     const name = stationName.trim();
 
@@ -86,13 +111,15 @@ export class App {
   }
 
   private selectStation(station: RadioStation): void {
-    this.playerState.set({ isPlaying: false, isTuning: true, error: '' });
-    this.station.set(station);
+    this.playerState.set({ isPlaying: false, isBuffering: true, error: null });
+    this.selection.set({
+      station,
+      source: { url: this.radioBrowser.streamUrl(station) },
+    });
     this.updatePageTitle(station.name);
-    this.playRequestId.update((id) => id + 1);
   }
 
   private resetPlayerState(): void {
-    this.playerState.set({ isPlaying: false, isTuning: false, error: '' });
+    this.playerState.set({ isPlaying: false, isBuffering: false, error: null });
   }
 }

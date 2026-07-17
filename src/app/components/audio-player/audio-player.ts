@@ -2,7 +2,6 @@ import {
   Component,
   ElementRef,
   effect,
-  inject,
   input,
   output,
   signal,
@@ -10,12 +9,17 @@ import {
   viewChild,
 } from '@angular/core';
 import { AudioControls } from '../audio-controls/audio-controls';
-import { RadioBrowser, RadioStation } from '../../services/radio-browser';
+
+export interface AudioSource {
+  readonly url: string;
+}
+
+export type AudioPlayerError = 'player-unavailable' | 'playback-failed' | 'stream-failed';
 
 export interface AudioPlayerState {
   isPlaying: boolean;
-  isTuning: boolean;
-  error: string;
+  isBuffering: boolean;
+  error: AudioPlayerError | null;
 }
 
 @Component({
@@ -25,41 +29,36 @@ export interface AudioPlayerState {
   styleUrl: './audio-player.css',
 })
 export class AudioPlayer {
-  private readonly radioBrowser = inject(RadioBrowser);
   private readonly audio = viewChild<ElementRef<HTMLAudioElement>>('audioPlayer');
-  private activePlayRequestId = 0;
 
-  readonly station = input.required<RadioStation>();
-  readonly isLoading = input.required<boolean>();
-  readonly playRequestId = input.required<number>();
+  readonly source = input.required<AudioSource>();
+  readonly disabled = input(false);
   readonly playerStateChanged = output<AudioPlayerState>();
+  readonly playbackStarted = output<AudioSource>();
 
   protected readonly isPlaying = signal(false);
-  protected readonly isTuning = signal(false);
   protected readonly volume = signal(1);
-  protected readonly error = signal('');
 
   constructor() {
     effect(() => {
       const audio = this.audio()?.nativeElement;
-      const station = this.station();
-      const playRequestId = this.playRequestId();
+      const source = this.source();
 
       if (!audio) {
         return;
       }
 
-      void this.playCurrentStation(audio, station, playRequestId);
+      void this.playSource(audio, source);
     });
   }
 
   protected async handlePlaybackButton(): Promise<void> {
     if (this.isPlaying()) {
-      this.pauseCurrentStation();
+      this.pausePlayback();
       return;
     }
 
-    await this.resumeCurrentStation();
+    await this.resumePlayback();
   }
 
   protected handleVolumeChange(volume: number): void {
@@ -79,28 +78,23 @@ export class AudioPlayer {
 
     this.setPlayerState({
       isPlaying: false,
-      isTuning: false,
-      error: 'This stream stopped responding. Try another station.',
+      isBuffering: false,
+      error: 'stream-failed',
     });
   }
 
   protected handleAudioPlaying(): void {
-    this.setPlayerState({ isPlaying: true, isTuning: false, error: '' });
+    this.setPlayerState({ isPlaying: true, isBuffering: false, error: null });
   }
 
   protected handleAudioStopped(): void {
-    this.setPlayerState({ isPlaying: false, isTuning: false, error: '' });
+    this.setPlayerState({ isPlaying: false, isBuffering: false, error: null });
   }
 
-  private async playCurrentStation(
-    audio: HTMLAudioElement,
-    station: RadioStation,
-    playRequestId: number,
-  ): Promise<void> {
-    this.activePlayRequestId = playRequestId;
-    this.setPlayerState({ isPlaying: false, isTuning: true, error: '' });
+  private async playSource(audio: HTMLAudioElement, source: AudioSource): Promise<void> {
+    this.setPlayerState({ isPlaying: false, isBuffering: true, error: null });
 
-    audio.src = this.radioBrowser.streamUrl(station);
+    audio.src = source.url;
     audio.autoplay = true;
     audio.volume = untracked(() => this.volume());
     audio.load();
@@ -108,25 +102,25 @@ export class AudioPlayer {
     try {
       await audio.play();
 
-      if (!this.isCurrentPlayRequest(playRequestId)) {
+      if (!this.isCurrentSource(source)) {
         return;
       }
 
-      this.radioBrowser.reportStationClick(station.stationuuid).catch(() => undefined);
+      this.playbackStarted.emit(source);
     } catch {
-      if (!this.isCurrentPlayRequest(playRequestId)) {
+      if (!this.isCurrentSource(source)) {
         return;
       }
 
       this.setPlayerState({
         isPlaying: false,
-        isTuning: false,
-        error: 'The station could not be played. Try another one.',
+        isBuffering: false,
+        error: 'playback-failed',
       });
     }
   }
 
-  private pauseCurrentStation(): void {
+  private pausePlayback(): void {
     const audio = this.audio()?.nativeElement;
 
     if (!audio) {
@@ -134,31 +128,31 @@ export class AudioPlayer {
     }
 
     audio.pause();
-    this.setPlayerState({ isPlaying: false, isTuning: false, error: '' });
+    this.setPlayerState({ isPlaying: false, isBuffering: false, error: null });
   }
 
-  private async resumeCurrentStation(): Promise<void> {
+  private async resumePlayback(): Promise<void> {
     const audio = this.audio()?.nativeElement;
 
     if (!audio) {
       this.setPlayerState({
         isPlaying: false,
-        isTuning: false,
-        error: 'The audio player is not available.',
+        isBuffering: false,
+        error: 'player-unavailable',
       });
       return;
     }
 
     try {
-      this.setPlayerState({ isPlaying: false, isTuning: true, error: '' });
+      this.setPlayerState({ isPlaying: false, isBuffering: true, error: null });
       audio.volume = this.volume();
       await audio.play();
-      this.setPlayerState({ isPlaying: true, isTuning: false, error: '' });
+      this.setPlayerState({ isPlaying: true, isBuffering: false, error: null });
     } catch {
       this.setPlayerState({
         isPlaying: false,
-        isTuning: false,
-        error: 'The station could not be played. Try another one.',
+        isBuffering: false,
+        error: 'playback-failed',
       });
     }
   }
@@ -169,14 +163,12 @@ export class AudioPlayer {
     return audio?.currentSrc || audio?.src || '';
   }
 
-  private isCurrentPlayRequest(playRequestId: number): boolean {
-    return playRequestId === this.activePlayRequestId;
+  private isCurrentSource(source: AudioSource): boolean {
+    return source === this.source();
   }
 
   private setPlayerState(state: AudioPlayerState): void {
     this.isPlaying.set(state.isPlaying);
-    this.isTuning.set(state.isTuning);
-    this.error.set(state.error);
     this.playerStateChanged.emit(state);
   }
 }

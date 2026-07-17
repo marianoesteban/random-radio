@@ -32,21 +32,21 @@
       [isPlaying]="isStatusPlaying()"
       [isLoading]="isLoading()"
       [isTuning]="isStatusTuning()"
-      [hasStation]="station() !== null"
+      [hasStation]="selection() !== null"
     ></app-player-status>
 
-    @if (station(); as currentStation) {
+    @if (selection(); as currentSelection) {
       <app-station-card
-        [station]="currentStation"
+        [station]="currentSelection.station"
         [isFavorite]="isCurrentStationFavorite()"
         (favoriteToggled)="toggleFavoriteStation($event)"
       ></app-station-card>
 
       <app-audio-player
-        [isLoading]="isLoading()"
-        [station]="currentStation"
-        [playRequestId]="playRequestId()"
+        [disabled]="isLoading()"
+        [source]="currentSelection.source"
         (playerStateChanged)="handlePlayerStateChange($event)"
+        (playbackStarted)="handlePlaybackStarted(currentSelection.station.stationuuid)"
       ></app-audio-player>
     }
   </section>
