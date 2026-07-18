@@ -20,6 +20,7 @@ describe('AudioPlayer', () => {
   let pauseAudio: MockInstance<() => void>;
 
   beforeEach(async () => {
+    localStorage.clear();
     loadAudio = vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => undefined);
     playAudio = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
     pauseAudio = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined);
@@ -67,6 +68,7 @@ describe('AudioPlayer', () => {
 
     expect(fixture.nativeElement.querySelector('app-audio-controls')).not.toBeNull();
     expect(audio.src).toBe('https://stream.example.com/live');
+    expect(audio.volume).toBe(1);
     expect(audio.hasAttribute('controls')).toBe(false);
     expect(loadAudio).toHaveBeenCalledOnce();
     expect(playAudio).toHaveBeenCalledOnce();
@@ -119,6 +121,23 @@ describe('AudioPlayer', () => {
     fixture.detectChanges();
 
     expect(audio.volume).toBe(0.35);
+    expect(localStorage.getItem('random-radio:volume')).toBe('0.35');
+  });
+
+  it('should restore the stored volume when the player is recreated', async () => {
+    localStorage.setItem('random-radio:volume', '0.6');
+
+    const { fixture } = createFixture();
+
+    await settlePlayback(fixture);
+
+    const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
+    const volumeInput = fixture.nativeElement.querySelector(
+      'input[type="range"]',
+    ) as HTMLInputElement;
+
+    expect(audio.volume).toBe(0.6);
+    expect(volumeInput.value).toBe('0.6');
   });
 
   it('should play again when a new source is selected', async () => {

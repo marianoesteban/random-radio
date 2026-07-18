@@ -10,6 +10,8 @@ import {
 } from '@angular/core';
 import { AudioControls } from '../audio-controls/audio-controls';
 
+const volumeStorageKey = 'random-radio:volume';
+
 export interface AudioSource {
   readonly url: string;
 }
@@ -37,7 +39,7 @@ export class AudioPlayer {
   readonly playbackStarted = output<AudioSource>();
 
   protected readonly isPlaying = signal(false);
-  protected readonly volume = signal(1);
+  protected readonly volume = signal(this.readStoredVolume());
 
   constructor() {
     effect(() => {
@@ -65,6 +67,7 @@ export class AudioPlayer {
     const audio = this.audio()?.nativeElement;
 
     this.volume.set(volume);
+    this.storeVolume(volume);
 
     if (audio) {
       audio.volume = volume;
@@ -161,6 +164,22 @@ export class AudioPlayer {
     const audio = this.audio()?.nativeElement;
 
     return audio?.currentSrc || audio?.src || '';
+  }
+
+  private readStoredVolume(): number {
+    const storedValue = localStorage.getItem(volumeStorageKey);
+
+    if (storedValue === null) {
+      return 1;
+    }
+
+    const volume = Number(storedValue);
+
+    return Number.isFinite(volume) && volume >= 0 && volume <= 1 ? volume : 1;
+  }
+
+  private storeVolume(volume: number): void {
+    localStorage.setItem(volumeStorageKey, String(volume));
   }
 
   private isCurrentSource(source: AudioSource): boolean {
