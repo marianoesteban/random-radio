@@ -1,0 +1,25 @@
+:host {
+  display: block;
+}
+
+p {
+  margin-block: 0;
+}
+
+.status {
+  min-height: 1.75rem;
+  margin-top: 1rem;
+  color: #37483f;
+}
+
+.error {
+  color: #9a1b1b;
+  font-weight: 700;
+}
+
+@media (max-width: 34rem) {
+  .status {
+    min-height: 1.4rem;
+    margin-top: 0.75rem;
+  }
+}

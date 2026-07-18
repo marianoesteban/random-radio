@@ -1,0 +1,7 @@
+:host {
+  display: inline;
+}
+
+.country-flag {
+  margin-inline-end: 0.35rem;
+}

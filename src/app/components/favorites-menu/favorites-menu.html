@@ -1,0 +1,46 @@
+<div class="favorites-menu">
+  <button
+    class="menu-button"
+    type="button"
+    aria-controls="favorites-menu-panel"
+    [attr.aria-expanded]="isOpen()"
+    (click)="toggleMenu()"
+  >
+    <span class="menu-icon" aria-hidden="true"></span>
+    <span>Favorites</span>
+    <span class="favorite-count" aria-label="Favorite station count">
+      {{ favorites().length }}
+    </span>
+  </button>
+
+  @if (isOpen()) {
+    <section id="favorites-menu-panel" class="favorites-panel" aria-labelledby="favorites-title">
+      <h2 id="favorites-title">Favorites</h2>
+
+      @if (favorites().length) {
+        <ul class="favorite-list">
+          @for (favorite of favorites(); track favorite.stationuuid) {
+            <li>
+              <button
+                class="favorite-station"
+                type="button"
+                [disabled]="isLoading()"
+                (click)="selectStation(favorite)"
+                [attr.aria-label]="'Play favorite station ' + favorite.name"
+              >
+                <span class="favorite-name">{{ favorite.name }}</span>
+                @if (favorite.countrycode) {
+                  <span class="favorite-country">
+                    <app-country-label [countryCode]="favorite.countrycode"></app-country-label>
+                  </span>
+                }
+              </button>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="empty-favorites">Your favorite stations will show up here.</p>
+      }
+    </section>
+  }
+</div>

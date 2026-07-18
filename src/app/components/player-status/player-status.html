@@ -1,0 +1,13 @@
+<div class="status" role="status" aria-live="polite">
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  } @else if (isPlaying()) {
+    <p>Playing now.</p>
+  } @else if (isLoading() || isTuning()) {
+    <p>Tuning in...</p>
+  } @else if (hasStation()) {
+    <p>Stopped.</p>
+  } @else {
+    <p>Ready when you are.</p>
+  }
+</div>

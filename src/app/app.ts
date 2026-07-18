@@ -1,75 +1,45 @@
-import { NgTemplateOutlet } from '@angular/common';
-import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Title } from '@angular/platform-browser';
-import { RadioBrowser, RadioStation } from './radio-browser';
+import { FavoritesMenu } from './components/favorites-menu/favorites-menu';
+import { RadioStationPlayer } from './components/radio-station-player/radio-station-player';
+import { RadioBrowser, RadioStation } from './services/radio-browser';
+import { FavoritesStore } from './stores/favorites-store';
 
 @Component({
   selector: 'app-root',
-  imports: [NgTemplateOutlet],
+  imports: [FavoritesMenu, RadioStationPlayer],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
 export class App {
   private readonly radioBrowser = inject(RadioBrowser);
+  private readonly favoritesStore = inject(FavoritesStore);
   private readonly title = inject(Title);
   private readonly defaultPageTitle = this.title.getTitle();
-  private readonly audio = viewChild<ElementRef<HTMLAudioElement>>('audioPlayer');
-  private readonly regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
-  private readonly favoritesStorageKey = 'random-radio:favorites';
 
   protected readonly station = signal<RadioStation | null>(null);
-  protected readonly stationHomepage = computed(() => {
-    const homepage = this.station()?.homepage.trim();
-
-    if (!homepage) {
-      return '';
-    }
-
-    return /^https?:\/\//i.test(homepage) ? homepage : '';
-  });
   protected readonly isLoading = signal(false);
-  protected readonly isPlaying = signal(false);
-  protected readonly isTuning = signal(false);
-  protected readonly volume = signal(1);
-  protected readonly volumePercent = computed(() => Math.round(this.volume() * 100));
   protected readonly error = signal('');
   protected readonly isFavoritesMenuOpen = signal(false);
-  protected readonly favoriteStations = signal<RadioStation[]>(this.loadFavoriteStations());
+  protected readonly favoriteStations = this.favoritesStore.stations;
+  protected readonly statusError = computed(
+    () => this.error() || this.favoritesStore.persistenceError(),
+  );
   protected readonly isCurrentStationFavorite = computed(() => {
     const stationUuid = this.station()?.stationuuid;
 
-    return stationUuid
-      ? this.favoriteStations().some((favorite) => favorite.stationuuid === stationUuid)
-      : false;
+    return stationUuid ? this.favoritesStore.isFavorite(stationUuid) : false;
   });
-
-  protected async handlePlaybackButton(): Promise<void> {
-    if (!this.station()) {
-      return;
-    }
-
-    if (this.isPlaying()) {
-      this.pauseCurrentStation();
-      return;
-    }
-
-    await this.resumeCurrentStation();
-  }
 
   protected async playRandomStation(): Promise<void> {
     this.isLoading.set(true);
-    this.isPlaying.set(false);
-    this.isTuning.set(true);
     this.error.set('');
 
     try {
       const station = await this.radioBrowser.getRandomStation();
 
-      this.station.set(station);
-      this.updatePageTitle(station.name);
-      await this.playCurrentStation(station);
+      this.selectStation(station);
     } catch {
-      this.isTuning.set(false);
       this.error.set('The station could not be played. Try another one.');
     } finally {
       this.isLoading.set(false);
@@ -81,148 +51,17 @@ export class App {
   }
 
   protected toggleFavoriteStation(station: RadioStation): void {
-    if (this.isCurrentStationFavorite()) {
-      this.favoriteStations.update((favorites) =>
-        favorites.filter((favorite) => favorite.stationuuid !== station.stationuuid),
-      );
-    } else {
-      this.favoriteStations.update((favorites) => [station, ...favorites]);
-    }
-
-    this.saveFavoriteStations();
+    this.favoritesStore.toggle(station);
   }
 
-  protected async playFavoriteStation(station: RadioStation): Promise<void> {
-    this.isLoading.set(true);
-    this.isPlaying.set(false);
-    this.isTuning.set(true);
+  protected playFavoriteStation(station: RadioStation): void {
     this.error.set('');
-    this.station.set(station);
-    this.updatePageTitle(station.name);
+    this.selectStation(station);
     this.isFavoritesMenuOpen.set(false);
-
-    try {
-      await this.playCurrentStation(station);
-    } catch {
-      this.isTuning.set(false);
-      this.error.set('The station could not be played. Try another one.');
-    } finally {
-      this.isLoading.set(false);
-    }
   }
 
-  private async playCurrentStation(station: RadioStation): Promise<void> {
-    const audio = this.audio()?.nativeElement;
-
-    if (!audio) {
-      throw new Error('The audio player is not available.');
-    }
-
-    audio.src = this.radioBrowser.streamUrl(station);
-    audio.autoplay = true;
-    audio.volume = this.volume();
-    audio.load();
-    await audio.play();
-    this.radioBrowser.reportStationClick(station.stationuuid).catch(() => undefined);
-  }
-
-  private pauseCurrentStation(): void {
-    const audio = this.audio()?.nativeElement;
-
-    if (!audio) {
-      return;
-    }
-
-    audio.pause();
-    this.isPlaying.set(false);
-    this.isTuning.set(false);
-  }
-
-  private async resumeCurrentStation(): Promise<void> {
-    const audio = this.audio()?.nativeElement;
-
-    if (!audio) {
-      this.error.set('The audio player is not available.');
-      return;
-    }
-
-    try {
-      this.error.set('');
-      this.isTuning.set(true);
-      audio.volume = this.volume();
-      await audio.play();
-      this.isPlaying.set(true);
-      this.isTuning.set(false);
-    } catch {
-      this.isPlaying.set(false);
-      this.isTuning.set(false);
-      this.error.set('The station could not be played. Try another one.');
-    }
-  }
-
-  protected handleVolumeChange(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const nextVolume = Number(input.value);
-
-    if (!Number.isFinite(nextVolume)) {
-      return;
-    }
-
-    const volume = Math.min(1, Math.max(0, nextVolume));
-    const audio = this.audio()?.nativeElement;
-
-    this.volume.set(volume);
-
-    if (audio) {
-      audio.volume = volume;
-    }
-  }
-
-  protected handleAudioError(): void {
-    if (!this.currentStreamUrl()) {
-      return;
-    }
-
-    this.isPlaying.set(false);
-    this.isTuning.set(false);
-    this.error.set('This stream stopped responding. Try another station.');
-  }
-
-  protected handleAudioPlaying(): void {
-    this.isPlaying.set(true);
-    this.isTuning.set(false);
-    this.error.set('');
-  }
-
-  protected handleAudioStopped(): void {
-    this.isPlaying.set(false);
-    this.isTuning.set(false);
-  }
-
-  protected countryName(countryCode: string): string {
-    try {
-      return this.regionNames.of(countryCode.toUpperCase()) ?? countryCode;
-    } catch {
-      return countryCode;
-    }
-  }
-
-  protected countryFlag(countryCode: string): string {
-    const normalizedCode = countryCode.trim().toUpperCase();
-
-    if (!/^[A-Z]{2}$/.test(normalizedCode)) {
-      return '';
-    }
-
-    return String.fromCodePoint(
-      ...[...normalizedCode].map((letter) => letter.codePointAt(0)! + 127397),
-    );
-  }
-
-  private currentStreamUrl(): string {
-    const station = this.station();
-
-    return station ? this.radioBrowser.streamUrl(station) : '';
+  protected handlePlaybackStarted(stationUuid: string): void {
+    this.radioBrowser.reportStationClick(stationUuid).catch(() => undefined);
   }
 
   private updatePageTitle(stationName: string): void {
@@ -231,47 +70,8 @@ export class App {
     this.title.setTitle(name ? `Random Radio - ${name}` : this.defaultPageTitle);
   }
 
-  private loadFavoriteStations(): RadioStation[] {
-    try {
-      const favorites = JSON.parse(localStorage.getItem(this.favoritesStorageKey) ?? '[]') as unknown;
-
-      if (!Array.isArray(favorites)) {
-        return [];
-      }
-
-      return favorites.filter((favorite): favorite is RadioStation => this.isRadioStation(favorite));
-    } catch {
-      return [];
-    }
-  }
-
-  private saveFavoriteStations(): void {
-    try {
-      localStorage.setItem(this.favoritesStorageKey, JSON.stringify(this.favoriteStations()));
-    } catch {
-      this.error.set('Favorites could not be saved in this browser.');
-    }
-  }
-
-  private isRadioStation(value: unknown): value is RadioStation {
-    if (!value || typeof value !== 'object') {
-      return false;
-    }
-
-    const station = value as Record<string, unknown>;
-
-    return (
-      typeof station['stationuuid'] === 'string' &&
-      typeof station['name'] === 'string' &&
-      typeof station['url'] === 'string' &&
-      typeof station['url_resolved'] === 'string' &&
-      typeof station['homepage'] === 'string' &&
-      typeof station['favicon'] === 'string' &&
-      typeof station['countrycode'] === 'string' &&
-      typeof station['language'] === 'string' &&
-      typeof station['tags'] === 'string' &&
-      typeof station['codec'] === 'string' &&
-      typeof station['bitrate'] === 'number'
-    );
+  private selectStation(station: RadioStation): void {
+    this.station.set({ ...station });
+    this.updatePageTitle(station.name);
   }
 }
