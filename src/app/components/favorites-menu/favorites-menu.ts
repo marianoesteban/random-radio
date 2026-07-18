@@ -1,10 +1,11 @@
 import { Component, input, output } from '@angular/core';
+import { TitleOnOverflow } from '../../directives/title-on-overflow';
 import { RadioStation } from '../../services/radio-browser';
 import { CountryLabel } from '../country-label/country-label';
 
 @Component({
   selector: 'app-favorites-menu',
-  imports: [CountryLabel],
+  imports: [CountryLabel, TitleOnOverflow],
   templateUrl: './favorites-menu.html',
   styleUrl: './favorites-menu.css',
 })

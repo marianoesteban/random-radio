@@ -60,9 +60,11 @@ p {
 }
 
 .station-details h2 {
-  overflow-wrap: anywhere;
+  overflow: hidden;
   font-size: 1.35rem;
   line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .station-details p {

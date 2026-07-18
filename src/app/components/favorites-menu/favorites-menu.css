@@ -125,9 +125,11 @@ p {
 }
 
 .favorite-name {
-  overflow-wrap: anywhere;
+  overflow: hidden;
   font-weight: 800;
   line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .favorite-country {
