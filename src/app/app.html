@@ -27,27 +27,13 @@
       }
     </button>
 
-    <app-player-status
-      [error]="statusError()"
-      [isPlaying]="isStatusPlaying()"
+    <app-radio-station-player
+      [station]="station()"
+      [isFavorite]="isCurrentStationFavorite()"
       [isLoading]="isLoading()"
-      [isTuning]="isStatusTuning()"
-      [hasStation]="selection() !== null"
-    ></app-player-status>
-
-    @if (selection(); as currentSelection) {
-      <app-station-card
-        [station]="currentSelection.station"
-        [isFavorite]="isCurrentStationFavorite()"
-        (favoriteToggled)="toggleFavoriteStation($event)"
-      ></app-station-card>
-
-      <app-audio-player
-        [disabled]="isLoading()"
-        [source]="currentSelection.source"
-        (playerStateChanged)="handlePlayerStateChange($event)"
-        (playbackStarted)="handlePlaybackStarted(currentSelection.station.stationuuid)"
-      ></app-audio-player>
-    }
+      [error]="statusError()"
+      (favoriteToggled)="toggleFavoriteStation($event)"
+      (playbackStarted)="handlePlaybackStarted($event)"
+    ></app-radio-station-player>
   </section>
 </main>

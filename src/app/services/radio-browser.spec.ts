@@ -3,7 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { vi } from 'vitest';
 
-import { RadioBrowser, RadioStation } from './radio-browser';
+import { RadioBrowser, RadioStation, radioStationStreamUrl } from './radio-browser';
 
 const baseUrl = 'https://de1.api.radio-browser.info/json';
 
@@ -65,16 +65,18 @@ describe('RadioBrowser', () => {
   it('should reject when the API does not return a playable station', async () => {
     const stationPromise = service.getRandomStation();
 
-    http.expectOne((request) => request.url === `${baseUrl}/stations/search`).flush([
-      createStation({ url: '', url_resolved: '' }),
-    ]);
+    http
+      .expectOne((request) => request.url === `${baseUrl}/stations/search`)
+      .flush([createStation({ url: '', url_resolved: '' })]);
 
     await expect(stationPromise).rejects.toThrow('No playable station was returned.');
   });
 
   it('should prefer the resolved stream URL and fall back to the original URL', () => {
-    expect(service.streamUrl(createStation())).toBe('https://stream.example.com/live');
-    expect(service.streamUrl(createStation({ url_resolved: '' }))).toBe('https://example.com/live');
+    expect(radioStationStreamUrl(createStation())).toBe('https://stream.example.com/live');
+    expect(radioStationStreamUrl(createStation({ url_resolved: '' }))).toBe(
+      'https://example.com/live',
+    );
   });
 
   it('should report station clicks to Radio Browser', async () => {

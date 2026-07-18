@@ -29,7 +29,6 @@ async function flushPromises(): Promise<void> {
 describe('App', () => {
   let radioBrowser: {
     getRandomStation: Mock<() => Promise<RadioStation>>;
-    streamUrl: Mock<(station: RadioStation) => string>;
     reportStationClick: Mock<(stationUuid: string) => Promise<void>>;
   };
   let title: Title;
@@ -42,7 +41,6 @@ describe('App', () => {
     localStorage.clear();
     radioBrowser = {
       getRandomStation: vi.fn(),
-      streamUrl: vi.fn((station) => station.url_resolved || station.url),
       reportStationClick: vi.fn(() => Promise.resolve()),
     };
     loadAudio = vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => undefined);
@@ -117,7 +115,6 @@ describe('App', () => {
     const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
 
     expect(radioBrowser.getRandomStation).toHaveBeenCalledOnce();
-    expect(radioBrowser.streamUrl).toHaveBeenCalledWith(station);
     expect(audio.src).toBe('https://stream.example.com/live');
     expect(audio.hasAttribute('controls')).toBe(false);
     expect(loadAudio).toHaveBeenCalledOnce();
@@ -126,6 +123,7 @@ describe('App', () => {
     expect(title.getTitle()).toBe('Random Radio - Station One');
     expect(button.disabled).toBe(false);
     expect(button.textContent).toContain('Play a Random Station');
+    expect(fixture.nativeElement.querySelector('app-radio-station-player')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('app-station-card')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('app-audio-controls')).not.toBeNull();
   });
@@ -217,7 +215,6 @@ describe('App', () => {
     const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
 
     expect(radioBrowser.getRandomStation).not.toHaveBeenCalled();
-    expect(radioBrowser.streamUrl).toHaveBeenCalledWith(station);
     expect(audio.src).toBe('https://stream.example.com/live');
     expect(loadAudio).toHaveBeenCalledOnce();
     expect(playAudio).toHaveBeenCalledOnce();
@@ -249,7 +246,6 @@ describe('App', () => {
 
     expect(loadAudio).toHaveBeenCalledOnce();
     expect(playAudio).toHaveBeenCalledOnce();
-    expect(radioBrowser.streamUrl).toHaveBeenCalledOnce();
     expect(radioBrowser.reportStationClick).toHaveBeenCalledOnce();
     expect(fixture.nativeElement.querySelector('.favorites-panel')).toBeNull();
   });

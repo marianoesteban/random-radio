@@ -1,0 +1,22 @@
+<app-player-status
+  [error]="statusError()"
+  [isPlaying]="isStatusPlaying()"
+  [isLoading]="isLoading()"
+  [isTuning]="isStatusTuning()"
+  [hasStation]="activeStation() !== null"
+></app-player-status>
+
+@if (activeStation(); as currentStation) {
+  <app-station-card
+    [station]="currentStation.station"
+    [isFavorite]="isFavorite()"
+    (favoriteToggled)="favoriteToggled.emit($event)"
+  ></app-station-card>
+
+  <app-audio-player
+    [disabled]="isLoading()"
+    [source]="currentStation.source"
+    (playerStateChanged)="handlePlayerStateChange($event)"
+    (playbackStarted)="handlePlaybackStarted(currentStation.station.stationuuid)"
+  ></app-audio-player>
+}

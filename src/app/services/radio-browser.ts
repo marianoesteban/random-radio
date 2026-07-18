@@ -16,6 +16,10 @@ export interface RadioStation {
   bitrate: number;
 }
 
+export function radioStationStreamUrl(station: RadioStation): string {
+  return station.url_resolved || station.url;
+}
+
 interface StationClickResponse {
   ok: string | boolean;
   message: string;
@@ -41,7 +45,7 @@ export class RadioBrowser {
       this.http.get<RadioStation[]>(`${this.baseUrl}/stations/search`, { params }),
     );
 
-    const station = stations.find((candidate) => this.streamUrl(candidate));
+    const station = stations.find((candidate) => radioStationStreamUrl(candidate));
 
     if (!station) {
       throw new Error('No playable station was returned.');
@@ -50,14 +54,8 @@ export class RadioBrowser {
     return station;
   }
 
-  streamUrl(station: RadioStation): string {
-    return station.url_resolved || station.url;
-  }
-
   async reportStationClick(stationUuid: string): Promise<void> {
-    await firstValueFrom(
-      this.http.get<StationClickResponse>(`${this.baseUrl}/url/${stationUuid}`),
-    );
+    await firstValueFrom(this.http.get<StationClickResponse>(`${this.baseUrl}/url/${stationUuid}`));
   }
 
   private randomOffset(): string {
