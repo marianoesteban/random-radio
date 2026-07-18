@@ -62,11 +62,13 @@ describe('FavoritesMenu', () => {
     const favoriteButton = fixture.nativeElement.querySelector(
       '.favorite-station',
     ) as HTMLButtonElement;
+    const favoriteName = fixture.nativeElement.querySelector('.favorite-name') as HTMLElement;
 
     expect(menuButton.getAttribute('aria-expanded')).toBe('true');
     expect(favoriteButton.textContent).toContain('Station One');
     expect(favoriteButton.textContent).toContain('Argentina');
     expect(favoriteButton.getAttribute('aria-label')).toBe('Play favorite station Station One');
+    expect(favoriteName.hasAttribute('title')).toBe(false);
 
     menuButton.click();
     favoriteButton.click();

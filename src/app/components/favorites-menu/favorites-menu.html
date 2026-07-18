@@ -28,7 +28,9 @@
                 (click)="selectStation(favorite)"
                 [attr.aria-label]="'Play favorite station ' + favorite.name"
               >
-                <span class="favorite-name">{{ favorite.name }}</span>
+                <span class="favorite-name" [appTitleOnOverflow]="favorite.name">
+                  {{ favorite.name }}
+                </span>
                 @if (favorite.countrycode) {
                   <span class="favorite-country">
                     <app-country-label [countryCode]="favorite.countrycode"></app-country-label>

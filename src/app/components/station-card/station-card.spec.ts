@@ -44,8 +44,12 @@ describe('StationCard', () => {
     const favoriteButton = fixture.nativeElement.querySelector(
       '.favorite-toggle',
     ) as HTMLButtonElement;
+    const stationName = fixture.nativeElement.querySelector(
+      '.station-details h2',
+    ) as HTMLHeadingElement;
 
     expect(card.textContent).toContain('Station One');
+    expect(stationName.hasAttribute('title')).toBe(false);
     expect(card.textContent).toContain('Argentina');
     expect(homepageLink.href).toBe('https://example.com/');
     expect(homepageLink.target).toBe('_blank');
