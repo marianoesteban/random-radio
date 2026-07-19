@@ -80,7 +80,7 @@ describe('AudioPlayer', () => {
     });
   });
 
-  it('should pause and resume playback', async () => {
+  it('should stop the stream and reconnect when played again', async () => {
     const { fixture } = createFixture();
 
     await settlePlayback(fixture);
@@ -97,13 +97,19 @@ describe('AudioPlayer', () => {
     fixture.detectChanges();
 
     expect(pauseAudio).toHaveBeenCalledOnce();
+    expect(audio.src).toBe('');
+    expect(loadAudio).toHaveBeenCalledTimes(2);
     expect(playbackButton.getAttribute('aria-label')).toBe('Play audio');
 
     playbackButton.click();
     await settlePlayback(fixture);
+    audio.dispatchEvent(new Event('playing'));
+    fixture.detectChanges();
 
+    expect(audio.src).toBe('https://stream.example.com/live');
+    expect(loadAudio).toHaveBeenCalledTimes(3);
     expect(playAudio).toHaveBeenCalledTimes(2);
-    expect(playbackButton.getAttribute('aria-label')).toBe('Pause audio');
+    expect(playbackButton.getAttribute('aria-label')).toBe('Stop audio');
   });
 
   it('should update the audio volume from the controls', async () => {

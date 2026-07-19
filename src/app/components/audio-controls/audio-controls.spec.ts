@@ -23,7 +23,7 @@ describe('AudioControls', () => {
     const volumeValue = fixture.nativeElement.querySelector('.volume-value') as HTMLElement;
 
     expect(button.disabled).toBe(false);
-    expect(button.getAttribute('aria-label')).toBe('Pause audio');
+    expect(button.getAttribute('aria-label')).toBe('Stop audio');
     expect(button.querySelector('.stop-icon')).not.toBeNull();
     expect(volumeInput.value).toBe('0.35');
     expect(volumeValue.textContent).toContain('35%');

@@ -128,7 +128,7 @@ describe('App', () => {
     expect(fixture.nativeElement.querySelector('app-audio-controls')).not.toBeNull();
   });
 
-  it('should pause and resume the current station without selecting a new one', async () => {
+  it('should stop and reconnect to the current station without selecting a new one', async () => {
     const fixture = createFixture();
     const audio = await playRandomStation(fixture);
 
@@ -143,12 +143,14 @@ describe('App', () => {
     fixture.detectChanges();
 
     expect(pauseAudio).toHaveBeenCalledOnce();
+    expect(audio.src).toBe('');
 
     playbackButton.click();
 
     await fixture.whenStable();
     await flushPromises();
 
+    expect(audio.src).toBe('https://stream.example.com/live');
     expect(playAudio).toHaveBeenCalledTimes(2);
     expect(radioBrowser.getRandomStation).toHaveBeenCalledOnce();
   });
