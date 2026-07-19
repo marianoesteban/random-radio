@@ -4,7 +4,7 @@
     type="button"
     [disabled]="disabled()"
     (click)="requestPlayback()"
-    [attr.aria-label]="isPlaying() ? 'Pause audio' : 'Play audio'"
+    [attr.aria-label]="isPlaying() ? 'Stop audio' : 'Play audio'"
   >
     @if (isPlaying()) {
       <span class="stop-icon" aria-hidden="true"></span>
