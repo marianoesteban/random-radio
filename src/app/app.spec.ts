@@ -193,20 +193,22 @@ describe('App', () => {
     favoriteButton.click();
     fixture.detectChanges();
 
-    let favorites = JSON.parse(
-      localStorage.getItem('random-radio:favorites') ?? '[]',
-    ) as RadioStation[];
+    let favorites = JSON.parse(localStorage.getItem('random-radio:favorites') ?? 'null') as {
+      version: number;
+      stations: RadioStation[];
+    };
 
-    expect(favorites).toEqual([station]);
+    expect(favorites).toEqual({ version: 1, stations: [station] });
 
     favoriteButton.click();
     fixture.detectChanges();
 
-    favorites = JSON.parse(
-      localStorage.getItem('random-radio:favorites') ?? '[]',
-    ) as RadioStation[];
+    favorites = JSON.parse(localStorage.getItem('random-radio:favorites') ?? 'null') as {
+      version: number;
+      stations: RadioStation[];
+    };
 
-    expect(favorites).toEqual([]);
+    expect(favorites).toEqual({ version: 1, stations: [] });
   });
 
   it('should load a favorite station and play it when selected', async () => {
@@ -214,7 +216,10 @@ describe('App', () => {
       source: { provider: 'radio-browser', externalId: 'favorite-1' },
       name: 'Saved Station',
     });
-    localStorage.setItem('random-radio:favorites', JSON.stringify([station]));
+    localStorage.setItem(
+      'random-radio:favorites',
+      JSON.stringify({ version: 1, stations: [station] }),
+    );
     const fixture = createFixture();
 
     const menuButton = fixture.nativeElement.querySelector('.menu-button') as HTMLButtonElement;
@@ -244,7 +249,10 @@ describe('App', () => {
     const station = createStation({
       source: { provider: 'radio-browser', externalId: 'favorite-1' },
     });
-    localStorage.setItem('random-radio:favorites', JSON.stringify([station]));
+    localStorage.setItem(
+      'random-radio:favorites',
+      JSON.stringify({ version: 1, stations: [station] }),
+    );
     const fixture = createFixture();
     const menuButton = fixture.nativeElement.querySelector('.menu-button') as HTMLButtonElement;
 

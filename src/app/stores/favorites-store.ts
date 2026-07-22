@@ -1,6 +1,11 @@
 import { Service, signal } from '@angular/core';
 import { RadioStation, radioStationId } from '../models/radio-station';
 
+interface StoredFavorites {
+  readonly version: 1;
+  readonly stations: RadioStation[];
+}
+
 @Service()
 export class FavoritesStore {
   private readonly storageKey = 'random-radio:favorites';
@@ -28,13 +33,21 @@ export class FavoritesStore {
 
   private load(): RadioStation[] {
     try {
-      const favorites = JSON.parse(localStorage.getItem(this.storageKey) ?? '[]') as unknown;
+      const storedFavorites = JSON.parse(
+        localStorage.getItem(this.storageKey) ?? 'null',
+      ) as unknown;
 
-      if (!Array.isArray(favorites)) {
+      if (!storedFavorites || typeof storedFavorites !== 'object') {
         return [];
       }
 
-      return favorites
+      const value = storedFavorites as Record<string, unknown>;
+
+      if (value['version'] !== 1 || !Array.isArray(value['stations'])) {
+        return [];
+      }
+
+      return value['stations']
         .map((favorite) => this.toRadioStation(favorite))
         .filter((favorite): favorite is RadioStation => favorite !== null);
     } catch {
@@ -44,7 +57,12 @@ export class FavoritesStore {
 
   private save(favorites: RadioStation[]): void {
     try {
-      localStorage.setItem(this.storageKey, JSON.stringify(favorites));
+      const storedFavorites: StoredFavorites = {
+        version: 1,
+        stations: favorites,
+      };
+
+      localStorage.setItem(this.storageKey, JSON.stringify(storedFavorites));
       this.storageError.set('');
     } catch {
       this.storageError.set('Favorites could not be saved in this browser.');
