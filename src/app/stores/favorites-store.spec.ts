@@ -32,7 +32,10 @@ describe('FavoritesStore', () => {
     const station = createStation();
     localStorage.setItem(
       'random-radio:favorites',
-      JSON.stringify([station, { source: { provider: 'invalid' } }]),
+      JSON.stringify({
+        version: 1,
+        stations: [station, { source: { provider: 'invalid' } }],
+      }),
     );
 
     const store = TestBed.inject(FavoritesStore);
@@ -49,6 +52,17 @@ describe('FavoritesStore', () => {
     expect(store.stations()).toEqual([]);
   });
 
+  it('should start empty when the stored favorites version is unsupported', () => {
+    localStorage.setItem(
+      'random-radio:favorites',
+      JSON.stringify({ version: 2, stations: [createStation()] }),
+    );
+
+    const store = TestBed.inject(FavoritesStore);
+
+    expect(store.stations()).toEqual([]);
+  });
+
   it('should add, remove, and persist favorite stations', () => {
     const store = TestBed.inject(FavoritesStore);
     const station = createStation();
@@ -57,13 +71,19 @@ describe('FavoritesStore', () => {
 
     expect(store.stations()).toEqual([station]);
     expect(store.isFavorite(station)).toBe(true);
-    expect(JSON.parse(localStorage.getItem('random-radio:favorites') ?? '[]')).toEqual([station]);
+    expect(JSON.parse(localStorage.getItem('random-radio:favorites') ?? 'null')).toEqual({
+      version: 1,
+      stations: [station],
+    });
 
     store.toggle(station);
 
     expect(store.stations()).toEqual([]);
     expect(store.isFavorite(station)).toBe(false);
-    expect(JSON.parse(localStorage.getItem('random-radio:favorites') ?? '[]')).toEqual([]);
+    expect(JSON.parse(localStorage.getItem('random-radio:favorites') ?? 'null')).toEqual({
+      version: 1,
+      stations: [],
+    });
   });
 
   it('should expose an error when favorites cannot be persisted', () => {
