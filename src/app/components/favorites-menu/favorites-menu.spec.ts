@@ -101,4 +101,18 @@ describe('FavoritesMenu', () => {
 
     expect(emptyMessage.textContent).toContain('Your favorite stations will show up here.');
   });
+
+  it('should show Unknown when a favorite has no country code', () => {
+    const fixture = TestBed.createComponent(FavoritesMenu);
+    fixture.componentRef.setInput('favorites', [createStation({ countryCode: '' })]);
+    fixture.componentRef.setInput('isOpen', true);
+    fixture.componentRef.setInput('isLoading', false);
+    fixture.detectChanges();
+
+    const favoriteCountry = fixture.nativeElement.querySelector(
+      '.favorite-country',
+    ) as HTMLElement;
+
+    expect(favoriteCountry.textContent).toContain('Unknown');
+  });
 });

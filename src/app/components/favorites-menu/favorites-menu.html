@@ -31,11 +31,9 @@
                 <span class="favorite-name" [appTitleOnOverflow]="favorite.name">
                   {{ favorite.name }}
                 </span>
-                @if (favorite.countryCode) {
-                  <span class="favorite-country">
-                    <app-country-label [countryCode]="favorite.countryCode"></app-country-label>
-                  </span>
-                }
+                <span class="favorite-country">
+                  <app-country-label [countryCode]="favorite.countryCode"></app-country-label>
+                </span>
               </button>
             </li>
           }

@@ -30,13 +30,14 @@ describe('CountryLabel', () => {
     expect(compiled.textContent).toContain('not-a-code');
   });
 
-  it('should render nothing for a blank country code', () => {
+  it('should render Unknown without a flag for a blank country code', () => {
     const fixture = TestBed.createComponent(CountryLabel);
     fixture.componentRef.setInput('countryCode', '   ');
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
 
-    expect(compiled.textContent?.trim()).toBe('');
+    expect(compiled.querySelector('.country-flag')).toBeNull();
+    expect(compiled.textContent?.trim()).toBe('Unknown');
   });
 });

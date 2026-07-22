@@ -27,9 +27,7 @@
   <div class="station-details">
     <h2 [appTitleOnOverflow]="currentStation.name">{{ currentStation.name }}</h2>
     <p>
-      @if (currentStation.countryCode) {
-        <app-country-label [countryCode]="currentStation.countryCode"></app-country-label>
-      }
+      <app-country-label [countryCode]="currentStation.countryCode"></app-country-label>
     </p>
   </div>
 
