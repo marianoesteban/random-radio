@@ -18,7 +18,7 @@ export class CountryLabel {
     const countryCode = this.normalizedCountryCode();
 
     if (!countryCode) {
-      return '';
+      return 'Unknown';
     }
 
     try {

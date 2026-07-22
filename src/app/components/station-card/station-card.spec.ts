@@ -79,6 +79,17 @@ describe('StationCard', () => {
     expect(favoriteButton.dataset['tooltip']).toBe('Remove from favorites');
   });
 
+  it('should show Unknown when the station has no country code', () => {
+    const fixture = TestBed.createComponent(StationCard);
+    fixture.componentRef.setInput('station', createStation({ countryCode: '' }));
+    fixture.componentRef.setInput('isFavorite', false);
+    fixture.detectChanges();
+
+    const details = fixture.nativeElement.querySelector('.station-details') as HTMLElement;
+
+    expect(details.textContent).toContain('Unknown');
+  });
+
   it('should emit the station when the favorite button is clicked', () => {
     const station = createStation();
     const fixture = TestBed.createComponent(StationCard);
