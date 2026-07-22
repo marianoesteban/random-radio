@@ -1,21 +1,19 @@
 import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
-import { RadioStation } from '../../services/radio-browser';
+import { RadioStation } from '../../models/radio-station';
 import { StationCard } from './station-card';
 
 function createStation(overrides: Partial<RadioStation> = {}): RadioStation {
   return {
-    stationuuid: 'station-1',
+    source: {
+      provider: 'radio-browser',
+      externalId: 'station-1',
+    },
     name: 'Station One',
-    url: 'https://example.com/live',
-    url_resolved: 'https://stream.example.com/live',
-    homepage: 'https://example.com',
-    favicon: '',
-    countrycode: 'AR',
-    language: 'Spanish',
-    tags: 'music',
-    codec: 'MP3',
-    bitrate: 128,
+    streamUrl: 'https://stream.example.com/live',
+    homepageUrl: 'https://example.com',
+    imageUrl: '',
+    countryCode: 'AR',
     ...overrides,
   };
 }
@@ -31,7 +29,7 @@ describe('StationCard', () => {
     const fixture = TestBed.createComponent(StationCard);
     fixture.componentRef.setInput(
       'station',
-      createStation({ favicon: 'https://example.com/icon.png' }),
+      createStation({ imageUrl: 'https://example.com/icon.png' }),
     );
     fixture.componentRef.setInput('isFavorite', false);
     fixture.detectChanges();
@@ -64,7 +62,7 @@ describe('StationCard', () => {
 
   it('should render a fallback logo and no link for unsafe homepages', () => {
     const fixture = TestBed.createComponent(StationCard);
-    fixture.componentRef.setInput('station', createStation({ homepage: 'javascript:alert(1)' }));
+    fixture.componentRef.setInput('station', createStation({ homepageUrl: 'javascript:alert(1)' }));
     fixture.componentRef.setInput('isFavorite', true);
     fixture.detectChanges();
 

@@ -1,7 +1,7 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, input, output } from '@angular/core';
 import { TitleOnOverflow } from '../../directives/title-on-overflow';
-import { RadioStation } from '../../services/radio-browser';
+import { RadioStation } from '../../models/radio-station';
 import { CountryLabel } from '../country-label/country-label';
 
 @Component({
@@ -16,7 +16,7 @@ export class StationCard {
   readonly favoriteToggled = output<RadioStation>();
 
   protected readonly homepage = computed(() => {
-    const homepage = this.station().homepage.trim();
+    const homepage = this.station().homepageUrl.trim();
 
     if (!homepage) {
       return '';

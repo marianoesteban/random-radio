@@ -1,6 +1,6 @@
 import { Component, input, output } from '@angular/core';
 import { TitleOnOverflow } from '../../directives/title-on-overflow';
-import { RadioStation } from '../../services/radio-browser';
+import { RadioStation, radioStationId } from '../../models/radio-station';
 import { CountryLabel } from '../country-label/country-label';
 
 @Component({
@@ -10,6 +10,8 @@ import { CountryLabel } from '../country-label/country-label';
   styleUrl: './favorites-menu.css',
 })
 export class FavoritesMenu {
+  protected readonly stationId = radioStationId;
+
   readonly favorites = input.required<RadioStation[]>();
   readonly isOpen = input.required<boolean>();
   readonly isLoading = input.required<boolean>();

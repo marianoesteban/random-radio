@@ -19,7 +19,7 @@
 
       @if (favorites().length) {
         <ul class="favorite-list">
-          @for (favorite of favorites(); track favorite.stationuuid) {
+          @for (favorite of favorites(); track stationId(favorite)) {
             <li>
               <button
                 class="favorite-station"
@@ -31,9 +31,9 @@
                 <span class="favorite-name" [appTitleOnOverflow]="favorite.name">
                   {{ favorite.name }}
                 </span>
-                @if (favorite.countrycode) {
+                @if (favorite.countryCode) {
                   <span class="favorite-country">
-                    <app-country-label [countryCode]="favorite.countrycode"></app-country-label>
+                    <app-country-label [countryCode]="favorite.countryCode"></app-country-label>
                   </span>
                 }
               </button>

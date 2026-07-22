@@ -1,8 +1,9 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Service, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { RadioStation } from '../models/radio-station';
 
-export interface RadioStation {
+interface RadioBrowserStation {
   stationuuid: string;
   name: string;
   url: string;
@@ -10,26 +11,12 @@ export interface RadioStation {
   homepage: string;
   favicon: string;
   countrycode: string;
-  language: string;
-  tags: string;
-  codec: string;
-  bitrate: number;
-}
-
-export function radioStationStreamUrl(station: RadioStation): string {
-  return station.url_resolved || station.url;
-}
-
-interface StationClickResponse {
-  ok: string | boolean;
-  message: string;
-  stationuuid: string;
-  name: string;
-  url: string;
 }
 
 @Service()
 export class RadioBrowser {
+  static readonly provider = 'radio-browser';
+
   private readonly http = inject(HttpClient);
   private readonly baseUrl = 'https://de1.api.radio-browser.info/json';
   private readonly randomOffsetLimit = 100;
@@ -42,20 +29,34 @@ export class RadioBrowser {
       .set('order', 'random');
 
     const stations = await firstValueFrom(
-      this.http.get<RadioStation[]>(`${this.baseUrl}/stations/search`, { params }),
+      this.http.get<RadioBrowserStation[]>(`${this.baseUrl}/stations/search`, { params }),
     );
 
-    const station = stations.find((candidate) => radioStationStreamUrl(candidate));
+    const station = stations.find((candidate) => candidate.url_resolved || candidate.url);
 
     if (!station) {
       throw new Error('No playable station was returned.');
     }
 
-    return station;
+    return this.toRadioStation(station);
   }
 
-  async reportStationClick(stationUuid: string): Promise<void> {
-    await firstValueFrom(this.http.get<StationClickResponse>(`${this.baseUrl}/url/${stationUuid}`));
+  async reportStationClick(stationId: string): Promise<void> {
+    await firstValueFrom(this.http.get<unknown>(`${this.baseUrl}/url/${stationId}`));
+  }
+
+  private toRadioStation(station: RadioBrowserStation): RadioStation {
+    return {
+      source: {
+        provider: RadioBrowser.provider,
+        externalId: station.stationuuid,
+      },
+      name: station.name,
+      streamUrl: station.url_resolved || station.url,
+      homepageUrl: station.homepage,
+      imageUrl: station.favicon,
+      countryCode: station.countrycode,
+    };
   }
 
   private randomOffset(): string {

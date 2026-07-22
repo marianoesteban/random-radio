@@ -1,21 +1,19 @@
 import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
-import { RadioStation } from '../services/radio-browser';
+import { RadioStation } from '../models/radio-station';
 import { FavoritesStore } from './favorites-store';
 
 function createStation(overrides: Partial<RadioStation> = {}): RadioStation {
   return {
-    stationuuid: 'station-1',
+    source: {
+      provider: 'radio-browser',
+      externalId: 'station-1',
+    },
     name: 'Station One',
-    url: 'https://example.com/live',
-    url_resolved: 'https://stream.example.com/live',
-    homepage: 'https://example.com',
-    favicon: '',
-    countrycode: 'AR',
-    language: 'Spanish',
-    tags: 'music',
-    codec: 'MP3',
-    bitrate: 128,
+    streamUrl: 'https://stream.example.com/live',
+    homepageUrl: 'https://example.com',
+    imageUrl: '',
+    countryCode: 'AR',
     ...overrides,
   };
 }
@@ -34,13 +32,13 @@ describe('FavoritesStore', () => {
     const station = createStation();
     localStorage.setItem(
       'random-radio:favorites',
-      JSON.stringify([station, { stationuuid: 'invalid' }]),
+      JSON.stringify([station, { source: { provider: 'invalid' } }]),
     );
 
     const store = TestBed.inject(FavoritesStore);
 
     expect(store.stations()).toEqual([station]);
-    expect(store.isFavorite(station.stationuuid)).toBe(true);
+    expect(store.isFavorite(station)).toBe(true);
   });
 
   it('should start empty when stored favorites are malformed', () => {
@@ -58,13 +56,13 @@ describe('FavoritesStore', () => {
     store.toggle(station);
 
     expect(store.stations()).toEqual([station]);
-    expect(store.isFavorite(station.stationuuid)).toBe(true);
+    expect(store.isFavorite(station)).toBe(true);
     expect(JSON.parse(localStorage.getItem('random-radio:favorites') ?? '[]')).toEqual([station]);
 
     store.toggle(station);
 
     expect(store.stations()).toEqual([]);
-    expect(store.isFavorite(station.stationuuid)).toBe(false);
+    expect(store.isFavorite(station)).toBe(false);
     expect(JSON.parse(localStorage.getItem('random-radio:favorites') ?? '[]')).toEqual([]);
   });
 

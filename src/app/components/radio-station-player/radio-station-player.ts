@@ -1,5 +1,5 @@
 import { Component, computed, effect, input, output, signal, untracked } from '@angular/core';
-import { RadioStation, radioStationStreamUrl } from '../../services/radio-browser';
+import { RadioStation, RadioStationSource, radioStationId } from '../../models/radio-station';
 import {
   AudioPlayer,
   AudioPlayerError,
@@ -32,7 +32,7 @@ export class RadioStationPlayer {
   readonly isLoading = input(false);
   readonly error = input('');
   readonly favoriteToggled = output<RadioStation>();
-  readonly playbackStarted = output<string>();
+  readonly playbackStarted = output<RadioStationSource>();
 
   protected readonly activeStation = signal<ActiveRadioStation | null>(null);
   protected readonly playerState = signal<AudioPlayerState>({
@@ -57,7 +57,10 @@ export class RadioStationPlayer {
       const requestedStation = this.station();
       const activeStation = untracked(this.activeStation);
       const isCurrentStationPlaying = untracked(() => this.playerState().isPlaying);
-      const isSameStation = requestedStation?.stationuuid === activeStation?.station.stationuuid;
+      const isSameStation =
+        requestedStation && activeStation
+          ? radioStationId(requestedStation) === radioStationId(activeStation.station)
+          : requestedStation === activeStation;
 
       if (isSameStation && isCurrentStationPlaying) {
         return;
@@ -67,7 +70,7 @@ export class RadioStationPlayer {
         requestedStation
           ? {
               station: requestedStation,
-              source: { url: radioStationStreamUrl(requestedStation) },
+              source: { url: requestedStation.streamUrl },
             }
           : null,
       );
@@ -78,7 +81,7 @@ export class RadioStationPlayer {
     this.playerState.set(state);
   }
 
-  protected handlePlaybackStarted(stationUuid: string): void {
-    this.playbackStarted.emit(stationUuid);
+  protected handlePlaybackStarted(source: RadioStationSource): void {
+    this.playbackStarted.emit(source);
   }
 }
