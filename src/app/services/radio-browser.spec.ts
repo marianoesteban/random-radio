@@ -3,11 +3,11 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { vi } from 'vitest';
 
-import { RadioBrowser, RadioStation, radioStationStreamUrl } from './radio-browser';
+import { RadioBrowser } from './radio-browser';
 
 const baseUrl = 'https://de1.api.radio-browser.info/json';
 
-function createStation(overrides: Partial<RadioStation> = {}): RadioStation {
+function createApiStation(overrides: Record<string, unknown> = {}) {
   return {
     stationuuid: 'station-1',
     name: 'Station One',
@@ -16,10 +16,7 @@ function createStation(overrides: Partial<RadioStation> = {}): RadioStation {
     homepage: 'https://example.com',
     favicon: 'https://example.com/favicon.ico',
     countrycode: 'AR',
-    language: 'Spanish',
-    tags: 'music',
-    codec: 'MP3',
-    bitrate: 128,
+    unused_api_field: 'not part of the app model',
     ...overrides,
   };
 }
@@ -46,7 +43,7 @@ describe('RadioBrowser', () => {
   });
 
   it('should request one playable random station with the expected filters', async () => {
-    const station = createStation();
+    const station = createApiStation();
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
 
     const stationPromise = service.getRandomStation();
@@ -59,7 +56,17 @@ describe('RadioBrowser', () => {
     expect(searchRequest.request.params.get('order')).toBe('random');
     searchRequest.flush([station]);
 
-    await expect(stationPromise).resolves.toEqual(station);
+    await expect(stationPromise).resolves.toEqual({
+      source: {
+        provider: 'radio-browser',
+        externalId: 'station-1',
+      },
+      name: 'Station One',
+      streamUrl: 'https://stream.example.com/live',
+      homepageUrl: 'https://example.com',
+      imageUrl: 'https://example.com/favicon.ico',
+      countryCode: 'AR',
+    });
   });
 
   it('should reject when the API does not return a playable station', async () => {
@@ -67,16 +74,21 @@ describe('RadioBrowser', () => {
 
     http
       .expectOne((request) => request.url === `${baseUrl}/stations/search`)
-      .flush([createStation({ url: '', url_resolved: '' })]);
+      .flush([createApiStation({ url: '', url_resolved: '' })]);
 
     await expect(stationPromise).rejects.toThrow('No playable station was returned.');
   });
 
-  it('should prefer the resolved stream URL and fall back to the original URL', () => {
-    expect(radioStationStreamUrl(createStation())).toBe('https://stream.example.com/live');
-    expect(radioStationStreamUrl(createStation({ url_resolved: '' }))).toBe(
-      'https://example.com/live',
-    );
+  it('should fall back to the original stream URL', async () => {
+    const stationPromise = service.getRandomStation();
+
+    http
+      .expectOne((request) => request.url === `${baseUrl}/stations/search`)
+      .flush([createApiStation({ url_resolved: '' })]);
+
+    await expect(stationPromise).resolves.toMatchObject({
+      streamUrl: 'https://example.com/live',
+    });
   });
 
   it('should report station clicks to Radio Browser', async () => {

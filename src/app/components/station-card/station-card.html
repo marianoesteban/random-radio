@@ -3,8 +3,8 @@
   @let homepageUrl = homepage();
 
   <ng-template #stationLogo>
-    @if (currentStation.favicon) {
-      <img class="station-logo" [src]="currentStation.favicon" width="72" height="72" alt="" />
+    @if (currentStation.imageUrl) {
+      <img class="station-logo" [src]="currentStation.imageUrl" width="72" height="72" alt="" />
     } @else {
       <span class="station-logo fallback" aria-hidden="true">RR</span>
     }
@@ -27,8 +27,8 @@
   <div class="station-details">
     <h2 [appTitleOnOverflow]="currentStation.name">{{ currentStation.name }}</h2>
     <p>
-      @if (currentStation.countrycode) {
-        <app-country-label [countryCode]="currentStation.countrycode"></app-country-label>
+      @if (currentStation.countryCode) {
+        <app-country-label [countryCode]="currentStation.countryCode"></app-country-label>
       }
     </p>
   </div>

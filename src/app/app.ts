@@ -2,7 +2,8 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { FavoritesMenu } from './components/favorites-menu/favorites-menu';
 import { RadioStationPlayer } from './components/radio-station-player/radio-station-player';
-import { RadioBrowser, RadioStation } from './services/radio-browser';
+import { RadioStation, RadioStationSource } from './models/radio-station';
+import { RadioBrowser } from './services/radio-browser';
 import { FavoritesStore } from './stores/favorites-store';
 
 @Component({
@@ -26,9 +27,9 @@ export class App {
     () => this.error() || this.favoritesStore.persistenceError(),
   );
   protected readonly isCurrentStationFavorite = computed(() => {
-    const stationUuid = this.station()?.stationuuid;
+    const station = this.station();
 
-    return stationUuid ? this.favoritesStore.isFavorite(stationUuid) : false;
+    return station ? this.favoritesStore.isFavorite(station) : false;
   });
 
   protected async playRandomStation(): Promise<void> {
@@ -60,8 +61,12 @@ export class App {
     this.isFavoritesMenuOpen.set(false);
   }
 
-  protected handlePlaybackStarted(stationUuid: string): void {
-    this.radioBrowser.reportStationClick(stationUuid).catch(() => undefined);
+  protected handlePlaybackStarted(source: RadioStationSource): void {
+    if (source.provider !== RadioBrowser.provider) {
+      return;
+    }
+
+    this.radioBrowser.reportStationClick(source.externalId).catch(() => undefined);
   }
 
   private updatePageTitle(stationName: string): void {

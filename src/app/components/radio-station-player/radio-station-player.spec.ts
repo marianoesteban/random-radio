@@ -1,21 +1,19 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { type MockInstance, vi } from 'vitest';
-import { RadioStation } from '../../services/radio-browser';
+import { RadioStation } from '../../models/radio-station';
 import { RadioStationPlayer } from './radio-station-player';
 
 function createStation(): RadioStation {
   return {
-    stationuuid: 'station-1',
+    source: {
+      provider: 'radio-browser',
+      externalId: 'station-1',
+    },
     name: 'Station One',
-    url: 'https://example.com/live',
-    url_resolved: 'https://stream.example.com/live',
-    homepage: 'https://example.com',
-    favicon: '',
-    countrycode: 'AR',
-    language: 'Spanish',
-    tags: 'music',
-    codec: 'MP3',
-    bitrate: 128,
+    streamUrl: 'https://stream.example.com/live',
+    homepageUrl: 'https://example.com',
+    imageUrl: '',
+    countryCode: 'AR',
   };
 }
 
@@ -87,7 +85,7 @@ describe('RadioStationPlayer', () => {
     fixture.detectChanges();
 
     expect(favoriteToggled).toHaveBeenCalledWith(station);
-    expect(playbackStarted).toHaveBeenCalledWith('station-1');
+    expect(playbackStarted).toHaveBeenCalledWith(station.source);
     expect(compiled.querySelector('.status')?.textContent).toContain(
       'This stream stopped responding. Try another station.',
     );

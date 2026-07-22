@@ -2,21 +2,20 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Title } from '@angular/platform-browser';
 import { type Mock, type MockInstance, vi } from 'vitest';
 import { App } from './app';
-import { RadioBrowser, RadioStation } from './services/radio-browser';
+import { RadioStation } from './models/radio-station';
+import { RadioBrowser } from './services/radio-browser';
 
 function createStation(overrides: Partial<RadioStation> = {}): RadioStation {
   return {
-    stationuuid: 'station-1',
+    source: {
+      provider: 'radio-browser',
+      externalId: 'station-1',
+    },
     name: 'Station One',
-    url: 'https://example.com/live',
-    url_resolved: 'https://stream.example.com/live',
-    homepage: 'https://example.com',
-    favicon: '',
-    countrycode: 'AR',
-    language: 'Spanish',
-    tags: 'music',
-    codec: 'MP3',
-    bitrate: 128,
+    streamUrl: 'https://stream.example.com/live',
+    homepageUrl: 'https://example.com',
+    imageUrl: '',
+    countryCode: 'AR',
     ...overrides,
   };
 }
@@ -29,7 +28,7 @@ async function flushPromises(): Promise<void> {
 describe('App', () => {
   let radioBrowser: {
     getRandomStation: Mock<() => Promise<RadioStation>>;
-    reportStationClick: Mock<(stationUuid: string) => Promise<void>>;
+    reportStationClick: Mock<(stationId: string) => Promise<void>>;
   };
   let title: Title;
   let loadAudio: MockInstance<() => void>;
@@ -128,6 +127,19 @@ describe('App', () => {
     expect(fixture.nativeElement.querySelector('app-audio-controls')).not.toBeNull();
   });
 
+  it('should not report playback to Radio Browser for a station from another provider', async () => {
+    const fixture = createFixture();
+
+    await playRandomStation(
+      fixture,
+      createStation({
+        source: { provider: 'other-api', externalId: 'station-1' },
+      }),
+    );
+
+    expect(radioBrowser.reportStationClick).not.toHaveBeenCalled();
+  });
+
   it('should stop and reconnect to the current station without selecting a new one', async () => {
     const fixture = createFixture();
     const audio = await playRandomStation(fixture);
@@ -198,7 +210,10 @@ describe('App', () => {
   });
 
   it('should load a favorite station and play it when selected', async () => {
-    const station = createStation({ stationuuid: 'favorite-1', name: 'Saved Station' });
+    const station = createStation({
+      source: { provider: 'radio-browser', externalId: 'favorite-1' },
+      name: 'Saved Station',
+    });
     localStorage.setItem('random-radio:favorites', JSON.stringify([station]));
     const fixture = createFixture();
 
@@ -226,7 +241,9 @@ describe('App', () => {
   });
 
   it('should keep playing a favorite when the same station is selected again', async () => {
-    const station = createStation({ stationuuid: 'favorite-1' });
+    const station = createStation({
+      source: { provider: 'radio-browser', externalId: 'favorite-1' },
+    });
     localStorage.setItem('random-radio:favorites', JSON.stringify([station]));
     const fixture = createFixture();
     const menuButton = fixture.nativeElement.querySelector('.menu-button') as HTMLButtonElement;

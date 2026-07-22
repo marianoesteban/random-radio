@@ -1,21 +1,19 @@
 import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
-import { RadioStation } from '../../services/radio-browser';
+import { RadioStation } from '../../models/radio-station';
 import { FavoritesMenu } from './favorites-menu';
 
 function createStation(overrides: Partial<RadioStation> = {}): RadioStation {
   return {
-    stationuuid: 'station-1',
+    source: {
+      provider: 'radio-browser',
+      externalId: 'station-1',
+    },
     name: 'Station One',
-    url: 'https://example.com/live',
-    url_resolved: 'https://stream.example.com/live',
-    homepage: 'https://example.com',
-    favicon: '',
-    countrycode: 'AR',
-    language: 'Spanish',
-    tags: 'music',
-    codec: 'MP3',
-    bitrate: 128,
+    streamUrl: 'https://stream.example.com/live',
+    homepageUrl: 'https://example.com',
+    imageUrl: '',
+    countryCode: 'AR',
     ...overrides,
   };
 }
@@ -31,7 +29,7 @@ describe('FavoritesMenu', () => {
     const fixture = TestBed.createComponent(FavoritesMenu);
     fixture.componentRef.setInput('favorites', [
       createStation(),
-      createStation({ stationuuid: '2' }),
+      createStation({ source: { provider: 'radio-browser', externalId: '2' } }),
     ]);
     fixture.componentRef.setInput('isOpen', false);
     fixture.componentRef.setInput('isLoading', false);

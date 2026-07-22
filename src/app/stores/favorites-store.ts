@@ -1,5 +1,5 @@
 import { Service, signal } from '@angular/core';
-import { RadioStation } from '../services/radio-browser';
+import { RadioStation, radioStationId } from '../models/radio-station';
 
 @Service()
 export class FavoritesStore {
@@ -10,13 +10,16 @@ export class FavoritesStore {
   readonly stations = this.favoriteStations.asReadonly();
   readonly persistenceError = this.storageError.asReadonly();
 
-  isFavorite(stationUuid: string): boolean {
-    return this.favoriteStations().some((station) => station.stationuuid === stationUuid);
+  isFavorite(station: RadioStation): boolean {
+    const stationId = radioStationId(station);
+
+    return this.favoriteStations().some((favorite) => radioStationId(favorite) === stationId);
   }
 
   toggle(station: RadioStation): void {
-    const favorites = this.isFavorite(station.stationuuid)
-      ? this.favoriteStations().filter((favorite) => favorite.stationuuid !== station.stationuuid)
+    const stationId = radioStationId(station);
+    const favorites = this.isFavorite(station)
+      ? this.favoriteStations().filter((favorite) => radioStationId(favorite) !== stationId)
       : [station, ...this.favoriteStations()];
 
     this.favoriteStations.set(favorites);
@@ -31,9 +34,9 @@ export class FavoritesStore {
         return [];
       }
 
-      return favorites.filter((favorite): favorite is RadioStation =>
-        this.isRadioStation(favorite),
-      );
+      return favorites
+        .map((favorite) => this.toRadioStation(favorite))
+        .filter((favorite): favorite is RadioStation => favorite !== null);
     } catch {
       return [];
     }
@@ -48,25 +51,44 @@ export class FavoritesStore {
     }
   }
 
-  private isRadioStation(value: unknown): value is RadioStation {
+  private toRadioStation(value: unknown): RadioStation | null {
     if (!value || typeof value !== 'object') {
-      return false;
+      return null;
     }
 
     const station = value as Record<string, unknown>;
 
-    return (
-      typeof station['stationuuid'] === 'string' &&
+    if (
+      this.isRadioStationSource(station['source']) &&
       typeof station['name'] === 'string' &&
-      typeof station['url'] === 'string' &&
-      typeof station['url_resolved'] === 'string' &&
-      typeof station['homepage'] === 'string' &&
-      typeof station['favicon'] === 'string' &&
-      typeof station['countrycode'] === 'string' &&
-      typeof station['language'] === 'string' &&
-      typeof station['tags'] === 'string' &&
-      typeof station['codec'] === 'string' &&
-      typeof station['bitrate'] === 'number'
-    );
+      typeof station['streamUrl'] === 'string' &&
+      typeof station['homepageUrl'] === 'string' &&
+      typeof station['imageUrl'] === 'string' &&
+      typeof station['countryCode'] === 'string'
+    ) {
+      return {
+        source: {
+          provider: station['source'].provider,
+          externalId: station['source'].externalId,
+        },
+        name: station['name'],
+        streamUrl: station['streamUrl'],
+        homepageUrl: station['homepageUrl'],
+        imageUrl: station['imageUrl'],
+        countryCode: station['countryCode'],
+      };
+    }
+
+    return null;
+  }
+
+  private isRadioStationSource(value: unknown): value is RadioStation['source'] {
+    if (!value || typeof value !== 'object') {
+      return false;
+    }
+
+    const source = value as Record<string, unknown>;
+
+    return typeof source['provider'] === 'string' && typeof source['externalId'] === 'string';
   }
 }

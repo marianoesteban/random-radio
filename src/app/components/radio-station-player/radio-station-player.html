@@ -17,6 +17,6 @@
     [disabled]="isLoading()"
     [source]="currentStation.source"
     (playerStateChanged)="handlePlayerStateChange($event)"
-    (playbackStarted)="handlePlaybackStarted(currentStation.station.stationuuid)"
+    (playbackStarted)="handlePlaybackStarted(currentStation.station.source)"
   ></app-audio-player>
 }
