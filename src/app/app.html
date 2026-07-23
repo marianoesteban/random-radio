@@ -7,8 +7,13 @@
         [favorites]="favoriteStations()"
         [isOpen]="isFavoritesMenuOpen()"
         [isLoading]="isLoading()"
+        [isImporting]="favoritesTransfer.isImporting()"
+        [transferMessage]="favoritesTransfer.message()"
+        [transferFailed]="favoritesTransfer.failed()"
         (menuToggled)="toggleFavoritesMenu()"
         (stationSelected)="playFavoriteStation($event)"
+        (exportRequested)="favoritesTransfer.exportToFile()"
+        (importRequested)="favoritesTransfer.importFromFile($event)"
       ></app-favorites-menu>
     </div>
 

@@ -109,10 +109,61 @@ describe('FavoritesMenu', () => {
     fixture.componentRef.setInput('isLoading', false);
     fixture.detectChanges();
 
-    const favoriteCountry = fixture.nativeElement.querySelector(
-      '.favorite-country',
-    ) as HTMLElement;
+    const favoriteCountry = fixture.nativeElement.querySelector('.favorite-country') as HTMLElement;
 
     expect(favoriteCountry.textContent).toContain('Unknown');
+  });
+
+  it('should emit export and import requests', () => {
+    const station = createStation();
+    const fixture = TestBed.createComponent(FavoritesMenu);
+    const exportHandler = vi.fn();
+    const importHandler = vi.fn();
+    const file = new File(['{}'], 'favorites.json', { type: 'application/json' });
+
+    fixture.componentInstance.exportRequested.subscribe(exportHandler);
+    fixture.componentInstance.importRequested.subscribe(importHandler);
+    fixture.componentRef.setInput('favorites', [station]);
+    fixture.componentRef.setInput('isOpen', true);
+    fixture.componentRef.setInput('isLoading', false);
+    fixture.detectChanges();
+
+    const exportButton = fixture.nativeElement.querySelector(
+      '.transfer-action[type="button"]',
+    ) as HTMLButtonElement;
+    const fileInput = fixture.nativeElement.querySelector('.file-input') as HTMLInputElement;
+
+    exportButton.click();
+    Object.defineProperty(fileInput, 'files', {
+      configurable: true,
+      value: { item: () => file },
+    });
+    fileInput.dispatchEvent(new Event('change'));
+
+    expect(exportHandler).toHaveBeenCalledOnce();
+    expect(importHandler).toHaveBeenCalledWith(file);
+    expect(fileInput.value).toBe('');
+  });
+
+  it('should disable unavailable transfers and announce an import error', () => {
+    const fixture = TestBed.createComponent(FavoritesMenu);
+    fixture.componentRef.setInput('favorites', []);
+    fixture.componentRef.setInput('isOpen', true);
+    fixture.componentRef.setInput('isLoading', false);
+    fixture.componentRef.setInput('isImporting', true);
+    fixture.componentRef.setInput('transferMessage', 'The import failed.');
+    fixture.componentRef.setInput('transferFailed', true);
+    fixture.detectChanges();
+
+    const exportButton = fixture.nativeElement.querySelector(
+      '.transfer-action[type="button"]',
+    ) as HTMLButtonElement;
+    const fileInput = fixture.nativeElement.querySelector('.file-input') as HTMLInputElement;
+    const message = fixture.nativeElement.querySelector('.transfer-message') as HTMLElement;
+
+    expect(exportButton.disabled).toBe(true);
+    expect(fileInput.disabled).toBe(true);
+    expect(message.getAttribute('role')).toBe('alert');
+    expect(message.textContent).toContain('The import failed.');
   });
 });

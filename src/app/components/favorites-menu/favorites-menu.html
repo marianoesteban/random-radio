@@ -41,6 +41,38 @@
       } @else {
         <p class="empty-favorites">Your favorite stations will show up here.</p>
       }
+
+      <div class="transfer-actions" role="group" aria-label="Import or export favorites">
+        <button
+          class="transfer-action"
+          type="button"
+          [disabled]="favorites().length === 0 || isImporting()"
+          (click)="exportFavorites()"
+        >
+          Export
+        </button>
+
+        <label class="transfer-action import-action" [class.is-disabled]="isImporting()">
+          <span>{{ isImporting() ? 'Importing...' : 'Import' }}</span>
+          <input
+            class="file-input"
+            type="file"
+            accept=".json,application/json"
+            [disabled]="isImporting()"
+            (change)="importFavorites($event)"
+          />
+        </label>
+      </div>
+
+      @if (transferMessage()) {
+        <p
+          class="transfer-message"
+          [class.transfer-error]="transferFailed()"
+          [attr.role]="transferFailed() ? 'alert' : 'status'"
+        >
+          {{ transferMessage() }}
+        </p>
+      }
     </section>
   }
 </div>

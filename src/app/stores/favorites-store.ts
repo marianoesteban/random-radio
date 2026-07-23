@@ -6,6 +6,10 @@ interface StoredFavorites {
   readonly stations: RadioStation[];
 }
 
+export type FavoritesImportResult =
+  | { readonly success: true; readonly imported: number; readonly total: number }
+  | { readonly success: false; readonly reason: 'invalid' | 'persistence' };
+
 @Service()
 export class FavoritesStore {
   private readonly storageKey = 'random-radio:favorites';
@@ -29,6 +33,67 @@ export class FavoritesStore {
 
     this.favoriteStations.set(favorites);
     this.save(favorites);
+  }
+
+  exportFavorites(): string {
+    const storedFavorites: StoredFavorites = {
+      version: 1,
+      stations: this.favoriteStations(),
+    };
+
+    return JSON.stringify(storedFavorites, null, 2);
+  }
+
+  importFavorites(contents: string): FavoritesImportResult {
+    let value: unknown;
+
+    try {
+      value = JSON.parse(contents) as unknown;
+    } catch {
+      return { success: false, reason: 'invalid' };
+    }
+
+    if (!value || typeof value !== 'object') {
+      return { success: false, reason: 'invalid' };
+    }
+
+    const storedFavorites = value as Record<string, unknown>;
+
+    if (storedFavorites['version'] !== 1 || !Array.isArray(storedFavorites['stations'])) {
+      return { success: false, reason: 'invalid' };
+    }
+
+    const importedStations = storedFavorites['stations'].map((station) =>
+      this.toRadioStation(station),
+    );
+
+    if (importedStations.some((station) => station === null)) {
+      return { success: false, reason: 'invalid' };
+    }
+
+    const existingIds = new Set(this.favoriteStations().map(radioStationId));
+    const newStations: RadioStation[] = [];
+
+    for (const station of importedStations) {
+      if (station && !existingIds.has(radioStationId(station))) {
+        existingIds.add(radioStationId(station));
+        newStations.push(station);
+      }
+    }
+
+    if (newStations.length === 0) {
+      return { success: true, imported: 0, total: this.favoriteStations().length };
+    }
+
+    const favorites = [...newStations, ...this.favoriteStations()];
+
+    if (!this.save(favorites)) {
+      return { success: false, reason: 'persistence' };
+    }
+
+    this.favoriteStations.set(favorites);
+
+    return { success: true, imported: newStations.length, total: favorites.length };
   }
 
   private load(): RadioStation[] {
@@ -55,7 +120,7 @@ export class FavoritesStore {
     }
   }
 
-  private save(favorites: RadioStation[]): void {
+  private save(favorites: RadioStation[]): boolean {
     try {
       const storedFavorites: StoredFavorites = {
         version: 1,
@@ -64,8 +129,10 @@ export class FavoritesStore {
 
       localStorage.setItem(this.storageKey, JSON.stringify(storedFavorites));
       this.storageError.set('');
+      return true;
     } catch {
       this.storageError.set('Favorites could not be saved in this browser.');
+      return false;
     }
   }
 
