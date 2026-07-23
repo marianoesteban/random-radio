@@ -96,4 +96,68 @@ describe('FavoritesStore', () => {
 
     expect(store.persistenceError()).toBe('Favorites could not be saved in this browser.');
   });
+
+  it('should export favorites in the versioned storage format', () => {
+    const store = TestBed.inject(FavoritesStore);
+    const station = createStation();
+
+    store.toggle(station);
+
+    expect(JSON.parse(store.exportFavorites())).toEqual({
+      version: 1,
+      stations: [station],
+    });
+  });
+
+  it('should merge imported favorites and ignore duplicates', () => {
+    const existingStation = createStation();
+    const importedStation = createStation({
+      source: { provider: 'radio-browser', externalId: 'station-2' },
+      name: 'Station Two',
+    });
+    const store = TestBed.inject(FavoritesStore);
+    store.toggle(existingStation);
+
+    const result = store.importFavorites(
+      JSON.stringify({
+        version: 1,
+        stations: [importedStation, existingStation, importedStation],
+      }),
+    );
+
+    expect(result).toEqual({ success: true, imported: 1, total: 2 });
+    expect(store.stations()).toEqual([importedStation, existingStation]);
+    expect(JSON.parse(localStorage.getItem('random-radio:favorites') ?? 'null')).toEqual({
+      version: 1,
+      stations: [importedStation, existingStation],
+    });
+  });
+
+  it.each([
+    '{not-json',
+    JSON.stringify({ version: 2, stations: [] }),
+    JSON.stringify({ version: 1, stations: [{ name: 'Incomplete station' }] }),
+  ])('should reject an invalid favorites import without changing saved favorites', (contents) => {
+    const station = createStation();
+    const store = TestBed.inject(FavoritesStore);
+    store.toggle(station);
+
+    expect(store.importFavorites(contents)).toEqual({ success: false, reason: 'invalid' });
+    expect(store.stations()).toEqual([station]);
+  });
+
+  it('should not update favorites when an import cannot be persisted', () => {
+    const store = TestBed.inject(FavoritesStore);
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('Storage unavailable');
+    });
+
+    const result = store.importFavorites(
+      JSON.stringify({ version: 1, stations: [createStation()] }),
+    );
+
+    expect(result).toEqual({ success: false, reason: 'persistence' });
+    expect(store.stations()).toEqual([]);
+    expect(store.persistenceError()).toBe('Favorites could not be saved in this browser.');
+  });
 });

@@ -35,7 +35,9 @@ p {
 }
 
 .menu-button:focus-visible,
-.favorite-station:focus-visible {
+.favorite-station:focus-visible,
+.transfer-action:focus-visible,
+.import-action:has(.file-input:focus-visible) {
   outline: 0.2rem solid #1b1f8f;
   outline-offset: 0.25rem;
 }
@@ -143,6 +145,64 @@ p {
   color: #52685b;
   font-size: 0.92rem;
   line-height: 1.35;
+}
+
+.transfer-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+  border-top: 1px solid rgb(24 32 27 / 12%);
+  padding-top: 0.85rem;
+}
+
+.transfer-action {
+  box-sizing: border-box;
+  display: grid;
+  min-height: 2.5rem;
+  border: 1px solid rgb(23 107 79 / 34%);
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  place-items: center;
+  color: #176b4f;
+  background: #fffdf8;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.transfer-action:hover:not(:disabled, .is-disabled) {
+  background: #edf5f0;
+}
+
+.transfer-action:disabled,
+.transfer-action.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.transfer-message {
+  margin-top: 0.65rem;
+  color: #315c48;
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.transfer-error {
+  color: #9b1c1c;
 }
 
 @media (max-width: 34rem) {

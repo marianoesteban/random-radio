@@ -245,6 +245,73 @@ describe('App', () => {
     expect(fixture.nativeElement.querySelector('.favorites-panel')).toBeNull();
   });
 
+  it('should import favorites from a valid export file', async () => {
+    const station = createStation({
+      source: { provider: 'radio-browser', externalId: 'imported-1' },
+      name: 'Imported Station',
+    });
+    const fixture = createFixture();
+    const menuButton = fixture.nativeElement.querySelector('.menu-button') as HTMLButtonElement;
+
+    menuButton.click();
+    fixture.detectChanges();
+
+    const fileInput = fixture.nativeElement.querySelector('.file-input') as HTMLInputElement;
+    const file = {
+      size: 100,
+      text: vi.fn().mockResolvedValue(JSON.stringify({ version: 1, stations: [station] })),
+    } as unknown as File;
+    Object.defineProperty(fileInput, 'files', {
+      configurable: true,
+      value: { item: () => file },
+    });
+
+    fileInput.dispatchEvent(new Event('change'));
+    await flushPromises();
+    fixture.detectChanges();
+
+    expect(JSON.parse(localStorage.getItem('random-radio:favorites') ?? 'null')).toEqual({
+      version: 1,
+      stations: [station],
+    });
+    expect(fixture.nativeElement.querySelector('.favorite-count')?.textContent).toContain('1');
+    expect(fixture.nativeElement.querySelector('.transfer-message')?.textContent).toContain(
+      '1 favorite imported.',
+    );
+  });
+
+  it('should keep import errors visible until the favorites menu is closed', async () => {
+    const fixture = createFixture();
+    const menuButton = fixture.nativeElement.querySelector('.menu-button') as HTMLButtonElement;
+    menuButton.click();
+    fixture.detectChanges();
+
+    const fileInput = fixture.nativeElement.querySelector('.file-input') as HTMLInputElement;
+    const file = {
+      size: 100,
+      text: vi.fn().mockResolvedValue('{not-json'),
+    } as unknown as File;
+    Object.defineProperty(fileInput, 'files', {
+      configurable: true,
+      value: { item: () => file },
+    });
+
+    fileInput.dispatchEvent(new Event('change'));
+    await flushPromises();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.transfer-message')?.getAttribute('role')).toBe(
+      'alert',
+    );
+
+    menuButton.click();
+    fixture.detectChanges();
+    menuButton.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.transfer-message')).toBeNull();
+  });
+
   it('should keep playing a favorite when the same station is selected again', async () => {
     const station = createStation({
       source: { provider: 'radio-browser', externalId: 'favorite-1' },

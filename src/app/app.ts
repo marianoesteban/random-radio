@@ -3,6 +3,7 @@ import { Title } from '@angular/platform-browser';
 import { FavoritesMenu } from './components/favorites-menu/favorites-menu';
 import { RadioStationPlayer } from './components/radio-station-player/radio-station-player';
 import { RadioStation, RadioStationSource } from './models/radio-station';
+import { FavoritesTransfer } from './services/favorites-transfer';
 import { RadioBrowser } from './services/radio-browser';
 import { FavoritesStore } from './stores/favorites-store';
 
@@ -22,6 +23,7 @@ export class App {
   protected readonly isLoading = signal(false);
   protected readonly error = signal('');
   protected readonly isFavoritesMenuOpen = signal(false);
+  protected readonly favoritesTransfer = inject(FavoritesTransfer);
   protected readonly favoriteStations = this.favoritesStore.stations;
   protected readonly statusError = computed(
     () => this.error() || this.favoritesStore.persistenceError(),
@@ -48,6 +50,10 @@ export class App {
   }
 
   protected toggleFavoritesMenu(): void {
+    if (this.isFavoritesMenuOpen()) {
+      this.favoritesTransfer.clearMessage();
+    }
+
     this.isFavoritesMenuOpen.update((isOpen) => !isOpen);
   }
 
@@ -58,6 +64,7 @@ export class App {
   protected playFavoriteStation(station: RadioStation): void {
     this.error.set('');
     this.selectStation(station);
+    this.favoritesTransfer.clearMessage();
     this.isFavoritesMenuOpen.set(false);
   }
 
