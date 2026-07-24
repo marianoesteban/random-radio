@@ -2,8 +2,84 @@
   box-sizing: border-box;
 }
 
+app-root {
+  --color-text: #18201b;
+  --color-heading: #25372e;
+  --color-muted: #52685b;
+  --color-subtle: #4c5c54;
+  --color-status: #37483f;
+  --color-surface: rgb(255 253 248 / 68%);
+  --color-surface-raised: #fffdf8;
+  --color-surface-hover: #edf5f0;
+  --color-border: rgb(24 32 27 / 14%);
+  --color-border-subtle: rgb(24 32 27 / 10%);
+  --color-accent: #176b4f;
+  --color-accent-hover: #0f5a41;
+  --color-action: #176b4f;
+  --color-action-hover: #0f5a41;
+  --color-accent-soft: rgb(23 107 79 / 18%);
+  --color-accent-border: rgb(23 107 79 / 34%);
+  --color-on-accent: #fffdf8;
+  --color-focus: #1b1f8f;
+  --color-error: #9a1b1b;
+  --color-success: #315c48;
+  --color-fallback: #243d63;
+  --color-tooltip: #18201b;
+  --color-favorite: #704c00;
+  --color-favorite-border: rgb(151 104 0 / 42%);
+  --color-favorite-surface: #fff3cf;
+  --shadow-color: 24 32 27;
+  --page-background:
+    linear-gradient(135deg, rgb(249 250 244 / 92%), rgb(233 242 236 / 88%)),
+    radial-gradient(circle at top left, #f4cf64 0, transparent 32rem), #f7f2e7;
+
+  color-scheme: light;
+}
+
+app-root.dark-theme {
+  --color-text: #edf4ef;
+  --color-heading: #f3f8f5;
+  --color-muted: #afc2b7;
+  --color-subtle: #b7c8be;
+  --color-status: #c5d3cb;
+  --color-surface: rgb(28 40 33 / 82%);
+  --color-surface-raised: #1c2821;
+  --color-surface-hover: #263a30;
+  --color-border: rgb(210 235 221 / 20%);
+  --color-border-subtle: rgb(210 235 221 / 16%);
+  --color-accent: #65d0a2;
+  --color-accent-hover: #8de0bc;
+  --color-action: #237555;
+  --color-action-hover: #195f46;
+  --color-accent-soft: rgb(101 208 162 / 26%);
+  --color-accent-border: rgb(101 208 162 / 48%);
+  --color-on-accent: #f9fffb;
+  --color-focus: #aeb5ff;
+  --color-error: #ff9d9d;
+  --color-success: #9fd3b7;
+  --color-fallback: #355884;
+  --color-tooltip: #0b100d;
+  --color-favorite: #f5cc67;
+  --color-favorite-border: rgb(245 204 103 / 50%);
+  --color-favorite-surface: #3d3219;
+  --shadow-color: 0 0 0;
+  --page-background:
+    linear-gradient(135deg, rgb(15 22 18 / 94%), rgb(20 34 27 / 92%)),
+    radial-gradient(circle at top left, #56491e 0, transparent 32rem), #0e1511;
+
+  color-scheme: dark;
+}
+
 html,
 body {
   margin: 0;
   min-height: 100%;
+}
+
+body {
+  background: #f7f2e7;
+}
+
+body:has(app-root.dark-theme) {
+  background: #0e1511;
 }

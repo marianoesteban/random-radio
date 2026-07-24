@@ -108,6 +108,30 @@ describe('App', () => {
     );
   });
 
+  it('should update the theme UI when the toggle is clicked', () => {
+    const fixture = createFixture();
+    const host = fixture.nativeElement as HTMLElement;
+    const themeButton = host.querySelector('.theme-toggle') as HTMLButtonElement;
+
+    expect(host.classList.contains('dark-theme')).toBe(false);
+    expect(themeButton.getAttribute('aria-pressed')).toBe('false');
+    expect(themeButton.getAttribute('aria-label')).toBe('Switch to dark theme');
+
+    themeButton.click();
+    fixture.detectChanges();
+
+    expect(host.classList.contains('dark-theme')).toBe(true);
+    expect(themeButton.getAttribute('aria-pressed')).toBe('true');
+    expect(themeButton.getAttribute('aria-label')).toBe('Switch to light theme');
+
+    themeButton.click();
+    fixture.detectChanges();
+
+    expect(host.classList.contains('dark-theme')).toBe(false);
+    expect(themeButton.getAttribute('aria-pressed')).toBe('false');
+    expect(themeButton.getAttribute('aria-label')).toBe('Switch to dark theme');
+  });
+
   it('should fetch a random station and wire it into audio playback', async () => {
     const station = createStation();
     radioBrowser.getRandomStation.mockResolvedValue(station);

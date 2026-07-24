@@ -14,18 +14,18 @@ p {
   gap: 1rem;
   align-items: start;
   margin-top: 1.5rem;
-  border: 1px solid rgb(24 32 27 / 14%);
+  border: 1px solid var(--color-border);
   border-radius: 0.5rem 0.5rem 0 0;
   padding: 1rem;
-  background: rgb(255 253 248 / 68%);
-  box-shadow: 0 0.6rem 1.4rem rgb(24 32 27 / 8%);
+  background: var(--color-surface);
+  box-shadow: 0 0.6rem 1.4rem rgb(var(--shadow-color) / 12%);
 }
 
 .station-logo {
   width: 4.5rem;
   height: 4.5rem;
   border-radius: 0.5rem;
-  background: #fffdf8;
+  background: var(--color-surface-raised);
   object-fit: contain;
 }
 
@@ -37,20 +37,20 @@ p {
 }
 
 .station-logo-link:hover .station-logo {
-  box-shadow: 0 0 0 0.2rem rgb(23 107 79 / 28%);
+  box-shadow: 0 0 0 0.2rem var(--color-accent-soft);
 }
 
 .station-logo-link:focus-visible,
 .favorite-toggle:focus-visible {
-  outline: 0.2rem solid #1b1f8f;
+  outline: 0.2rem solid var(--color-focus);
   outline-offset: 0.25rem;
 }
 
 .fallback {
   display: grid;
   place-items: center;
-  color: #fffdf8;
-  background: #243d63;
+  color: var(--color-on-accent);
+  background: var(--color-fallback);
   font-weight: 800;
 }
 
@@ -69,7 +69,7 @@ p {
 
 .station-details p {
   margin-top: 0.35rem;
-  color: #4c5c54;
+  color: var(--color-subtle);
 }
 
 .favorite-toggle {
@@ -79,12 +79,12 @@ p {
   inset-inline-end: 0.75rem;
   width: 2.35rem;
   height: 2.35rem;
-  border: 1px solid rgb(23 107 79 / 28%);
+  border: 1px solid var(--color-accent-border);
   border-radius: 0.5rem;
   padding: 0;
   place-items: center;
-  color: #176b4f;
-  background: #fffdf8;
+  color: var(--color-accent);
+  background: var(--color-surface-raised);
   font: inherit;
   font-size: 1.15rem;
   font-weight: 800;
@@ -93,7 +93,7 @@ p {
 }
 
 .favorite-toggle:hover {
-  background: #eef7f1;
+  background: var(--color-surface-hover);
 }
 
 .favorite-toggle::after {
@@ -104,9 +104,9 @@ p {
   max-width: 12rem;
   border-radius: 0.35rem;
   padding: 0.4rem 0.55rem;
-  color: #fffdf8;
-  background: #18201b;
-  box-shadow: 0 0.45rem 1rem rgb(24 32 27 / 20%);
+  color: var(--color-on-accent);
+  background: var(--color-tooltip);
+  box-shadow: 0 0.45rem 1rem rgb(var(--shadow-color) / 28%);
   content: attr(data-tooltip);
   font-size: 0.78rem;
   font-weight: 700;
@@ -130,9 +130,9 @@ p {
 }
 
 .favorite-toggle.is-favorite {
-  color: #704c00;
-  border-color: rgb(151 104 0 / 42%);
-  background: #fff3cf;
+  color: var(--color-favorite);
+  border-color: var(--color-favorite-border);
+  background: var(--color-favorite-surface);
 }
 
 .favorite-icon::before {
