@@ -1,5 +1,5 @@
 import { Service, signal } from '@angular/core';
-import { RadioStation, radioStationId } from '../models/radio-station';
+import { parseRadioStation, RadioStation, radioStationId } from '../models/radio-station';
 
 interface StoredFavorites {
   readonly version: 1;
@@ -63,9 +63,7 @@ export class FavoritesStore {
       return { success: false, reason: 'invalid' };
     }
 
-    const importedStations = storedFavorites['stations'].map((station) =>
-      this.toRadioStation(station),
-    );
+    const importedStations = storedFavorites['stations'].map(parseRadioStation);
 
     if (importedStations.some((station) => station === null)) {
       return { success: false, reason: 'invalid' };
@@ -113,7 +111,7 @@ export class FavoritesStore {
       }
 
       return value['stations']
-        .map((favorite) => this.toRadioStation(favorite))
+        .map(parseRadioStation)
         .filter((favorite): favorite is RadioStation => favorite !== null);
     } catch {
       return [];
@@ -134,46 +132,5 @@ export class FavoritesStore {
       this.storageError.set('Favorites could not be saved in this browser.');
       return false;
     }
-  }
-
-  private toRadioStation(value: unknown): RadioStation | null {
-    if (!value || typeof value !== 'object') {
-      return null;
-    }
-
-    const station = value as Record<string, unknown>;
-
-    if (
-      this.isRadioStationSource(station['source']) &&
-      typeof station['name'] === 'string' &&
-      typeof station['streamUrl'] === 'string' &&
-      typeof station['homepageUrl'] === 'string' &&
-      typeof station['imageUrl'] === 'string' &&
-      typeof station['countryCode'] === 'string'
-    ) {
-      return {
-        source: {
-          provider: station['source'].provider,
-          externalId: station['source'].externalId,
-        },
-        name: station['name'],
-        streamUrl: station['streamUrl'],
-        homepageUrl: station['homepageUrl'],
-        imageUrl: station['imageUrl'],
-        countryCode: station['countryCode'],
-      };
-    }
-
-    return null;
-  }
-
-  private isRadioStationSource(value: unknown): value is RadioStation['source'] {
-    if (!value || typeof value !== 'object') {
-      return false;
-    }
-
-    const source = value as Record<string, unknown>;
-
-    return typeof source['provider'] === 'string' && typeof source['externalId'] === 'string';
   }
 }

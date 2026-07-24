@@ -28,7 +28,7 @@ describe('FavoritesStore', () => {
     vi.restoreAllMocks();
   });
 
-  it('should load valid favorite stations from browser storage', () => {
+  it('should load valid favorites and discard invalid stored entries', () => {
     const station = createStation();
     localStorage.setItem(
       'random-radio:favorites',
@@ -57,6 +57,16 @@ describe('FavoritesStore', () => {
       'random-radio:favorites',
       JSON.stringify({ version: 2, stations: [createStation()] }),
     );
+
+    const store = TestBed.inject(FavoritesStore);
+
+    expect(store.stations()).toEqual([]);
+  });
+
+  it('should start empty when browser storage cannot be read', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('Storage unavailable');
+    });
 
     const store = TestBed.inject(FavoritesStore);
 
@@ -97,6 +107,22 @@ describe('FavoritesStore', () => {
     expect(store.persistenceError()).toBe('Favorites could not be saved in this browser.');
   });
 
+  it('should clear the persistence error after a later successful save', () => {
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('Storage unavailable');
+    });
+    const store = TestBed.inject(FavoritesStore);
+    const station = createStation();
+
+    store.toggle(station);
+    expect(store.persistenceError()).toBe('Favorites could not be saved in this browser.');
+
+    setItem.mockRestore();
+    store.toggle(station);
+
+    expect(store.persistenceError()).toBe('');
+  });
+
   it('should export favorites in the versioned storage format', () => {
     const store = TestBed.inject(FavoritesStore);
     const station = createStation();
@@ -131,6 +157,22 @@ describe('FavoritesStore', () => {
       version: 1,
       stations: [importedStation, existingStation],
     });
+  });
+
+  it('should report no changes when every imported favorite already exists', () => {
+    const station = createStation();
+    const store = TestBed.inject(FavoritesStore);
+    store.toggle(station);
+
+    const result = store.importFavorites(
+      JSON.stringify({
+        version: 1,
+        stations: [station],
+      }),
+    );
+
+    expect(result).toEqual({ success: true, imported: 0, total: 1 });
+    expect(store.stations()).toEqual([station]);
   });
 
   it.each([

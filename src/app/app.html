@@ -34,6 +34,7 @@
 
     <app-radio-station-player
       [station]="station()"
+      [autoplay]="shouldAutoplayStation()"
       [isFavorite]="isCurrentStationFavorite()"
       [isLoading]="isLoading()"
       [error]="statusError()"
