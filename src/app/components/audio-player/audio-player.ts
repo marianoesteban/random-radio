@@ -35,6 +35,7 @@ export class AudioPlayer {
   private pendingPlayback: Promise<void> | null = null;
 
   readonly source = input.required<AudioSource>();
+  readonly autoplay = input(true);
   readonly disabled = input(false);
   readonly playerStateChanged = output<AudioPlayerState>();
   readonly playbackStarted = output<AudioSource>();
@@ -46,12 +47,17 @@ export class AudioPlayer {
     effect(() => {
       const audio = this.audio()?.nativeElement;
       const source = this.source();
+      const autoplay = this.autoplay();
 
       if (!audio) {
         return;
       }
 
-      void this.playSource(audio, source);
+      if (autoplay) {
+        void this.playSource(audio, source);
+      } else {
+        this.prepareSource(audio);
+      }
     });
   }
 
@@ -139,6 +145,13 @@ export class AudioPlayer {
         error: 'playback-failed',
       });
     }
+  }
+
+  private prepareSource(audio: HTMLAudioElement): void {
+    this.pendingPlayback = null;
+    audio.autoplay = false;
+    audio.volume = untracked(() => this.volume());
+    this.setPlayerState({ isPlaying: false, isBuffering: false, error: null });
   }
 
   private stopPlayback(): void {

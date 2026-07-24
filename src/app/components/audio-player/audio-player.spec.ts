@@ -52,6 +52,30 @@ describe('AudioPlayer', () => {
     return { fixture, stateHandler, playbackStartedHandler };
   }
 
+  it('should render a source without playing when autoplay is disabled', async () => {
+    const source = createSource();
+    const fixture = TestBed.createComponent(AudioPlayer);
+
+    fixture.componentRef.setInput('source', source);
+    fixture.componentRef.setInput('autoplay', false);
+    fixture.detectChanges();
+    await settlePlayback(fixture);
+
+    const playbackButton = fixture.nativeElement.querySelector(
+      '.playback-action',
+    ) as HTMLButtonElement;
+
+    expect(playbackButton.getAttribute('aria-label')).toBe('Play audio');
+    expect(loadAudio).not.toHaveBeenCalled();
+    expect(playAudio).not.toHaveBeenCalled();
+
+    playbackButton.click();
+    await settlePlayback(fixture);
+
+    expect(loadAudio).toHaveBeenCalledOnce();
+    expect(playAudio).toHaveBeenCalledOnce();
+  });
+
   async function settlePlayback(fixture: ComponentFixture<AudioPlayer>): Promise<void> {
     await fixture.whenStable();
     await flushPromises();

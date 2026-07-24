@@ -4,6 +4,7 @@ import { type Mock, type MockInstance, vi } from 'vitest';
 import { App } from './app';
 import { RadioStation } from './models/radio-station';
 import { RadioBrowser } from './services/radio-browser';
+import { LastPlayedStationStorage } from './storage/last-played-station-storage';
 
 function createStation(overrides: Partial<RadioStation> = {}): RadioStation {
   return {
@@ -30,6 +31,10 @@ describe('App', () => {
     getRandomStation: Mock<() => Promise<RadioStation>>;
     reportStationClick: Mock<(stationId: string) => Promise<void>>;
   };
+  let lastPlayedStationStorage: {
+    load: Mock<() => RadioStation | null>;
+    save: Mock<(station: RadioStation) => void>;
+  };
   let title: Title;
   let loadAudio: MockInstance<() => void>;
   let playAudio: MockInstance<() => Promise<void>>;
@@ -42,13 +47,20 @@ describe('App', () => {
       getRandomStation: vi.fn(),
       reportStationClick: vi.fn(() => Promise.resolve()),
     };
+    lastPlayedStationStorage = {
+      load: vi.fn(() => null),
+      save: vi.fn(),
+    };
     loadAudio = vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => undefined);
     playAudio = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
     pauseAudio = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined);
 
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [{ provide: RadioBrowser, useValue: radioBrowser }],
+      providers: [
+        { provide: RadioBrowser, useValue: radioBrowser },
+        { provide: LastPlayedStationStorage, useValue: lastPlayedStationStorage },
+      ],
     }).compileComponents();
 
     title = TestBed.inject(Title);
@@ -125,6 +137,34 @@ describe('App', () => {
     expect(fixture.nativeElement.querySelector('app-radio-station-player')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('app-station-card')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('app-audio-controls')).not.toBeNull();
+    expect(lastPlayedStationStorage.save).toHaveBeenCalledWith(station);
+  });
+
+  it('should restore the last played station without starting playback', async () => {
+    const station = createStation({ name: 'Previously Playing' });
+    lastPlayedStationStorage.load.mockReturnValue(station);
+
+    const fixture = createFixture();
+    await settlePlayback(fixture);
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const playbackButton = compiled.querySelector('.playback-action') as HTMLButtonElement;
+
+    expect(compiled.querySelector('.station-details h2')?.textContent).toContain(
+      'Previously Playing',
+    );
+    expect(compiled.querySelector('.status')?.textContent).toContain('Stopped.');
+    expect(playAudio).not.toHaveBeenCalled();
+    expect(loadAudio).not.toHaveBeenCalled();
+    expect(radioBrowser.reportStationClick).not.toHaveBeenCalled();
+    expect(title.getTitle()).toBe('Random Radio - Previously Playing');
+
+    playbackButton.click();
+    await settlePlayback(fixture);
+
+    expect(playAudio).toHaveBeenCalledOnce();
+    expect(loadAudio).toHaveBeenCalledOnce();
+    expect(radioBrowser.reportStationClick).toHaveBeenCalledWith('station-1');
   });
 
   it('should not report playback to Radio Browser for a station from another provider', async () => {

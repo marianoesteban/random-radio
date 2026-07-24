@@ -12,6 +12,7 @@ import { StationCard } from '../station-card/station-card';
 interface ActiveRadioStation {
   readonly station: RadioStation;
   readonly source: AudioSource;
+  readonly autoplay: boolean;
 }
 
 const audioPlayerErrorMessages: Record<AudioPlayerError, string> = {
@@ -28,6 +29,7 @@ const audioPlayerErrorMessages: Record<AudioPlayerError, string> = {
 })
 export class RadioStationPlayer {
   readonly station = input.required<RadioStation | null>();
+  readonly autoplay = input(true);
   readonly isFavorite = input.required<boolean>();
   readonly isLoading = input(false);
   readonly error = input('');
@@ -55,6 +57,7 @@ export class RadioStationPlayer {
   constructor() {
     effect(() => {
       const requestedStation = this.station();
+      const autoplay = this.autoplay();
       const activeStation = untracked(this.activeStation);
       const isCurrentStationPlaying = untracked(() => this.playerState().isPlaying);
       const isSameStation =
@@ -71,6 +74,7 @@ export class RadioStationPlayer {
           ? {
               station: requestedStation,
               source: { url: requestedStation.streamUrl },
+              autoplay,
             }
           : null,
       );

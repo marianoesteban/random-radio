@@ -5,6 +5,7 @@ import { RadioStationPlayer } from './components/radio-station-player/radio-stat
 import { RadioStation, RadioStationSource } from './models/radio-station';
 import { FavoritesTransfer } from './services/favorites-transfer';
 import { RadioBrowser } from './services/radio-browser';
+import { LastPlayedStationStorage } from './storage/last-played-station-storage';
 import { FavoritesStore } from './stores/favorites-store';
 
 @Component({
@@ -16,10 +17,12 @@ import { FavoritesStore } from './stores/favorites-store';
 export class App {
   private readonly radioBrowser = inject(RadioBrowser);
   private readonly favoritesStore = inject(FavoritesStore);
+  private readonly lastPlayedStationStorage = inject(LastPlayedStationStorage);
   private readonly title = inject(Title);
   private readonly defaultPageTitle = this.title.getTitle();
 
-  protected readonly station = signal<RadioStation | null>(null);
+  protected readonly station = signal<RadioStation | null>(this.lastPlayedStationStorage.load());
+  protected readonly shouldAutoplayStation = signal(false);
   protected readonly isLoading = signal(false);
   protected readonly error = signal('');
   protected readonly isFavoritesMenuOpen = signal(false);
@@ -33,6 +36,14 @@ export class App {
 
     return station ? this.favoritesStore.isFavorite(station) : false;
   });
+
+  constructor() {
+    const restoredStation = this.station();
+
+    if (restoredStation) {
+      this.updatePageTitle(restoredStation.name);
+    }
+  }
 
   protected async playRandomStation(): Promise<void> {
     this.isLoading.set(true);
@@ -69,6 +80,12 @@ export class App {
   }
 
   protected handlePlaybackStarted(source: RadioStationSource): void {
+    const station = this.station();
+
+    if (station) {
+      this.lastPlayedStationStorage.save(station);
+    }
+
     if (source.provider !== RadioBrowser.provider) {
       return;
     }
@@ -83,6 +100,7 @@ export class App {
   }
 
   private selectStation(station: RadioStation): void {
+    this.shouldAutoplayStation.set(true);
     this.station.set({ ...station });
     this.updatePageTitle(station.name);
   }
