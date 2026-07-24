@@ -5,6 +5,7 @@ import { RadioStationPlayer } from './components/radio-station-player/radio-stat
 import { RadioStation, RadioStationSource } from './models/radio-station';
 import { FavoritesTransfer } from './services/favorites-transfer';
 import { RadioBrowser } from './services/radio-browser';
+import { ThemeService } from './services/theme';
 import { LastPlayedStationStorage } from './storage/last-played-station-storage';
 import { FavoritesStore } from './stores/favorites-store';
 
@@ -13,6 +14,9 @@ import { FavoritesStore } from './stores/favorites-store';
   imports: [FavoritesMenu, RadioStationPlayer],
   templateUrl: './app.html',
   styleUrl: './app.css',
+  host: {
+    '[class.dark-theme]': 'theme.isDark()',
+  },
 })
 export class App {
   private readonly radioBrowser = inject(RadioBrowser);
@@ -27,6 +31,7 @@ export class App {
   protected readonly error = signal('');
   protected readonly isFavoritesMenuOpen = signal(false);
   protected readonly favoritesTransfer = inject(FavoritesTransfer);
+  protected readonly theme = inject(ThemeService);
   protected readonly favoriteStations = this.favoritesStore.stations;
   protected readonly statusError = computed(
     () => this.error() || this.favoritesStore.persistenceError(),
@@ -66,6 +71,10 @@ export class App {
     }
 
     this.isFavoritesMenuOpen.update((isOpen) => !isOpen);
+  }
+
+  protected toggleTheme(): void {
+    this.theme.toggle();
   }
 
   protected toggleFavoriteStation(station: RadioStation): void {

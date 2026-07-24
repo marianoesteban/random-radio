@@ -3,18 +3,38 @@
     <div class="topbar">
       <p class="eyebrow">Random Radio</p>
 
-      <app-favorites-menu
-        [favorites]="favoriteStations()"
-        [isOpen]="isFavoritesMenuOpen()"
-        [isLoading]="isLoading()"
-        [isImporting]="favoritesTransfer.isImporting()"
-        [transferMessage]="favoritesTransfer.message()"
-        [transferFailed]="favoritesTransfer.failed()"
-        (menuToggled)="toggleFavoritesMenu()"
-        (stationSelected)="playFavoriteStation($event)"
-        (exportRequested)="favoritesTransfer.exportToFile()"
-        (importRequested)="favoritesTransfer.importFromFile($event)"
-      ></app-favorites-menu>
+      <div class="topbar-actions">
+        <button
+          class="theme-toggle"
+          type="button"
+          [attr.aria-label]="theme.isDark() ? 'Switch to light theme' : 'Switch to dark theme'"
+          [attr.aria-pressed]="theme.isDark()"
+          (click)="toggleTheme()"
+        >
+          <svg class="theme-icon sun-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="3.5"></circle>
+            <path
+              d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42"
+            ></path>
+          </svg>
+          <svg class="theme-icon moon-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20.3 15.2A8.5 8.5 0 0 1 8.8 3.7a8.5 8.5 0 1 0 11.5 11.5Z"></path>
+          </svg>
+        </button>
+
+        <app-favorites-menu
+          [favorites]="favoriteStations()"
+          [isOpen]="isFavoritesMenuOpen()"
+          [isLoading]="isLoading()"
+          [isImporting]="favoritesTransfer.isImporting()"
+          [transferMessage]="favoritesTransfer.message()"
+          [transferFailed]="favoritesTransfer.failed()"
+          (menuToggled)="toggleFavoritesMenu()"
+          (stationSelected)="playFavoriteStation($event)"
+          (exportRequested)="favoritesTransfer.exportToFile()"
+          (importRequested)="favoritesTransfer.importFromFile($event)"
+        ></app-favorites-menu>
+      </div>
     </div>
 
     <h1 id="page-title">Press play and land somewhere on the dial.</h1>
