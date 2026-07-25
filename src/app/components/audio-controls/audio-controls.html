@@ -17,8 +17,18 @@
     <span class="visually-hidden">Volume</span>
     <svg class="volume-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
       <path d="M4 9v6h4l5 4V5L8 9H4z"></path>
-      <path d="M16 8.5a5 5 0 0 1 0 7"></path>
-      <path d="M18.5 6a8.5 8.5 0 0 1 0 12"></path>
+      @switch (volumeLevel()) {
+        @case ('muted') {
+          <path class="muted-mark" d="m16 9 5 5m0-5-5 5"></path>
+        }
+        @case ('low') {
+          <path class="low-wave" d="M16 8.5a5 5 0 0 1 0 7"></path>
+        }
+        @case ('high') {
+          <path class="low-wave" d="M16 8.5a5 5 0 0 1 0 7"></path>
+          <path class="high-wave" d="M18.5 6a8.5 8.5 0 0 1 0 12"></path>
+        }
+      }
     </svg>
     <input
       type="range"
@@ -28,6 +38,7 @@
       [value]="volume()"
       (input)="updateVolume($event)"
       aria-label="Volume"
+      [attr.aria-valuetext]="volumeAriaValue()"
     />
   </label>
   <span class="volume-value" aria-hidden="true">{{ volumePercent() }}%</span>

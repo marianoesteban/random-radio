@@ -26,7 +26,34 @@ describe('AudioControls', () => {
     expect(button.getAttribute('aria-label')).toBe('Stop audio');
     expect(button.querySelector('.stop-icon')).not.toBeNull();
     expect(volumeInput.value).toBe('0.35');
+    expect(volumeInput.getAttribute('aria-valuetext')).toBe('35% volume');
+    expect(fixture.nativeElement.querySelector('.low-wave')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.high-wave')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.muted-mark')).toBeNull();
     expect(volumeValue.textContent).toContain('35%');
+  });
+
+  it('should reflect muted and high volume levels in the icon', () => {
+    const fixture = TestBed.createComponent(AudioControls);
+    fixture.componentRef.setInput('isPlaying', false);
+    fixture.componentRef.setInput('volume', 0);
+    fixture.detectChanges();
+
+    const volumeInput = fixture.nativeElement.querySelector(
+      'input[type="range"]',
+    ) as HTMLInputElement;
+
+    expect(volumeInput.getAttribute('aria-valuetext')).toBe('Muted');
+    expect(fixture.nativeElement.querySelector('.muted-mark')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.low-wave')).toBeNull();
+
+    fixture.componentRef.setInput('volume', 0.75);
+    fixture.detectChanges();
+
+    expect(volumeInput.getAttribute('aria-valuetext')).toBe('75% volume');
+    expect(fixture.nativeElement.querySelector('.muted-mark')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.low-wave')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.high-wave')).not.toBeNull();
   });
 
   it('should disable playback while loading', () => {
