@@ -1,9 +1,12 @@
 <app-audio-controls
   [disabled]="disabled()"
   [isPlaying]="isPlaying()"
+  [isMuted]="isMuted()"
   [volume]="volume()"
   (playbackRequested)="handlePlaybackButton()"
+  (volumeToggleRequested)="handleVolumeToggle()"
   (volumeChanged)="handleVolumeChange($event)"
+  (volumeChangeCommitted)="handleVolumeChangeCommitted($event)"
 ></app-audio-controls>
 
 <audio

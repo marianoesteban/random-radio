@@ -2,15 +2,15 @@ import {
   Component,
   ElementRef,
   effect,
+  inject,
   input,
   output,
   signal,
   untracked,
   viewChild,
 } from '@angular/core';
+import { AudioPreferencesStorage } from '../../storage/audio-preferences-storage';
 import { AudioControls } from '../audio-controls/audio-controls';
-
-const volumeStorageKey = 'random-radio:volume';
 
 export interface AudioSource {
   readonly url: string;
@@ -32,7 +32,10 @@ export interface AudioPlayerState {
 })
 export class AudioPlayer {
   private readonly audio = viewChild<ElementRef<HTMLAudioElement>>('audioPlayer');
+  private readonly preferencesStorage = inject(AudioPreferencesStorage);
+  private readonly initialPreferences = this.preferencesStorage.load();
   private pendingPlayback: Promise<void> | null = null;
+  private lastCommittedVolume = 1;
 
   readonly source = input.required<AudioSource>();
   readonly autoplay = input(true);
@@ -41,9 +44,12 @@ export class AudioPlayer {
   readonly playbackStarted = output<AudioSource>();
 
   protected readonly isPlaying = signal(false);
-  protected readonly volume = signal(this.readStoredVolume());
+  protected readonly isMuted = signal(this.initialPreferences.muted);
+  protected readonly volume = signal(this.initialPreferences.volume);
 
   constructor() {
+    this.lastCommittedVolume = this.volume();
+
     effect(() => {
       const audio = this.audio()?.nativeElement;
       const source = this.source();
@@ -84,12 +90,44 @@ export class AudioPlayer {
   protected handleVolumeChange(volume: number): void {
     const audio = this.audio()?.nativeElement;
 
+    if (volume <= 0) {
+      this.setMuted(true);
+      return;
+    }
+
     this.volume.set(volume);
-    this.storeVolume(volume);
+    this.setMuted(false);
 
     if (audio) {
       audio.volume = volume;
     }
+  }
+
+  protected handleVolumeChangeCommitted(volume: number): void {
+    const audio = this.audio()?.nativeElement;
+
+    if (volume <= 0) {
+      this.volume.set(this.lastCommittedVolume);
+
+      if (audio) {
+        audio.volume = this.lastCommittedVolume;
+      }
+
+      return;
+    }
+
+    this.lastCommittedVolume = volume;
+    this.volume.set(volume);
+    this.preferencesStorage.saveVolume(volume);
+    this.setMuted(false);
+
+    if (audio) {
+      audio.volume = volume;
+    }
+  }
+
+  protected handleVolumeToggle(): void {
+    this.setMuted(!this.isMuted());
   }
 
   protected handleAudioError(): void {
@@ -118,6 +156,7 @@ export class AudioPlayer {
     audio.src = source.url;
     audio.autoplay = true;
     audio.volume = untracked(() => this.volume());
+    audio.muted = untracked(() => this.isMuted());
     audio.load();
 
     let playback: Promise<void> | null = null;
@@ -151,6 +190,7 @@ export class AudioPlayer {
     this.pendingPlayback = null;
     audio.autoplay = false;
     audio.volume = untracked(() => this.volume());
+    audio.muted = untracked(() => this.isMuted());
     this.setPlayerState({ isPlaying: false, isBuffering: false, error: null });
   }
 
@@ -174,20 +214,15 @@ export class AudioPlayer {
     return audio?.currentSrc || audio?.src || '';
   }
 
-  private readStoredVolume(): number {
-    const storedValue = localStorage.getItem(volumeStorageKey);
+  private setMuted(isMuted: boolean): void {
+    const audio = this.audio()?.nativeElement;
 
-    if (storedValue === null) {
-      return 1;
+    this.isMuted.set(isMuted);
+    this.preferencesStorage.saveMuted(isMuted);
+
+    if (audio) {
+      audio.muted = isMuted;
     }
-
-    const volume = Number(storedValue);
-
-    return Number.isFinite(volume) && volume >= 0 && volume <= 1 ? volume : 1;
-  }
-
-  private storeVolume(volume: number): void {
-    localStorage.setItem(volumeStorageKey, String(volume));
   }
 
   private isCurrentPlayback(playback: Promise<void>, source: AudioSource): boolean {
