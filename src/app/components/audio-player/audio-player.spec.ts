@@ -1,5 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { type Mock, type MockInstance, vi } from 'vitest';
+import {
+  AudioPreferencesStorage,
+  type AudioPreferences,
+} from '../../storage/audio-preferences-storage';
 import { AudioPlayer, AudioSource } from './audio-player';
 
 function createSource(overrides: Partial<AudioSource> = {}): AudioSource {
@@ -18,15 +22,25 @@ describe('AudioPlayer', () => {
   let loadAudio: MockInstance<() => void>;
   let playAudio: MockInstance<() => Promise<void>>;
   let pauseAudio: MockInstance<() => void>;
+  let preferencesStorage: {
+    load: Mock;
+    saveVolume: Mock;
+    saveMuted: Mock;
+  };
 
   beforeEach(async () => {
-    localStorage.clear();
+    preferencesStorage = {
+      load: vi.fn((): AudioPreferences => ({ volume: 1, muted: false })),
+      saveVolume: vi.fn(),
+      saveMuted: vi.fn(),
+    };
     loadAudio = vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => undefined);
     playAudio = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
     pauseAudio = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined);
 
     await TestBed.configureTestingModule({
       imports: [AudioPlayer],
+      providers: [{ provide: AudioPreferencesStorage, useValue: preferencesStorage }],
     }).compileComponents();
   });
 
@@ -93,6 +107,7 @@ describe('AudioPlayer', () => {
     expect(fixture.nativeElement.querySelector('app-audio-controls')).not.toBeNull();
     expect(audio.src).toBe('https://stream.example.com/live');
     expect(audio.volume).toBe(1);
+    expect(audio.muted).toBe(false);
     expect(audio.hasAttribute('controls')).toBe(false);
     expect(loadAudio).toHaveBeenCalledOnce();
     expect(playAudio).toHaveBeenCalledOnce();
@@ -148,14 +163,123 @@ describe('AudioPlayer', () => {
 
     volumeInput.value = '0.35';
     volumeInput.dispatchEvent(new Event('input'));
+    volumeInput.dispatchEvent(new Event('change'));
     fixture.detectChanges();
 
     expect(audio.volume).toBe(0.35);
-    expect(localStorage.getItem('random-radio:volume')).toBe('0.35');
+    expect(preferencesStorage.saveVolume).toHaveBeenCalledWith(0.35);
   });
 
-  it('should restore the stored volume when the player is recreated', async () => {
-    localStorage.setItem('random-radio:volume', '0.6');
+  it('should mute without changing volume and unmute at the same level', async () => {
+    const { fixture } = createFixture();
+
+    await settlePlayback(fixture);
+
+    const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
+    const volumeInput = fixture.nativeElement.querySelector(
+      'input[type="range"]',
+    ) as HTMLInputElement;
+    const volumeButton = fixture.nativeElement.querySelector(
+      '.volume-action',
+    ) as HTMLButtonElement;
+
+    volumeInput.value = '0.35';
+    volumeInput.dispatchEvent(new Event('input'));
+    volumeInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    volumeButton.click();
+    fixture.detectChanges();
+
+    expect(audio.volume).toBe(0.35);
+    expect(audio.muted).toBe(true);
+    expect(volumeInput.value).toBe('0');
+    expect(volumeButton.getAttribute('aria-label')).toBe('Unmute audio');
+    expect(preferencesStorage.saveVolume).toHaveBeenCalledWith(0.35);
+    expect(preferencesStorage.saveMuted).toHaveBeenLastCalledWith(true);
+
+    volumeButton.click();
+    fixture.detectChanges();
+
+    expect(audio.volume).toBe(0.35);
+    expect(audio.muted).toBe(false);
+    expect(volumeInput.value).toBe('0.35');
+    expect(volumeButton.getAttribute('aria-label')).toBe('Mute audio');
+    expect(preferencesStorage.saveMuted).toHaveBeenLastCalledWith(false);
+  });
+
+  it('should treat dragging to zero as mute and restore the pre-drag level', async () => {
+    const { fixture } = createFixture();
+
+    await settlePlayback(fixture);
+
+    const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
+    const volumeInput = fixture.nativeElement.querySelector(
+      'input[type="range"]',
+    ) as HTMLInputElement;
+    const volumeButton = fixture.nativeElement.querySelector(
+      '.volume-action',
+    ) as HTMLButtonElement;
+
+    volumeInput.value = '0.65';
+    volumeInput.dispatchEvent(new Event('input'));
+    volumeInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    volumeInput.value = '0.05';
+    volumeInput.dispatchEvent(new Event('input'));
+    volumeInput.value = '0';
+    volumeInput.dispatchEvent(new Event('input'));
+    volumeInput.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(audio.volume).toBe(0.65);
+    expect(audio.muted).toBe(true);
+    expect(volumeInput.value).toBe('0');
+    expect(volumeButton.getAttribute('aria-label')).toBe('Unmute audio');
+    expect(volumeButton.getAttribute('aria-pressed')).toBe('true');
+    expect(preferencesStorage.saveVolume).toHaveBeenCalledOnce();
+    expect(preferencesStorage.saveVolume).toHaveBeenCalledWith(0.65);
+    expect(preferencesStorage.saveMuted).toHaveBeenLastCalledWith(true);
+
+    volumeButton.click();
+    fixture.detectChanges();
+
+    expect(audio.volume).toBe(0.65);
+    expect(audio.muted).toBe(false);
+    expect(volumeInput.value).toBe('0.65');
+    expect(volumeButton.getAttribute('aria-label')).toBe('Mute audio');
+    expect(preferencesStorage.saveMuted).toHaveBeenLastCalledWith(false);
+  });
+
+  it('should unmute when the volume slider is moved', async () => {
+    const { fixture } = createFixture();
+
+    await settlePlayback(fixture);
+
+    const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
+    const volumeInput = fixture.nativeElement.querySelector(
+      'input[type="range"]',
+    ) as HTMLInputElement;
+    const volumeButton = fixture.nativeElement.querySelector(
+      '.volume-action',
+    ) as HTMLButtonElement;
+
+    volumeButton.click();
+    fixture.detectChanges();
+    expect(audio.muted).toBe(true);
+
+    volumeInput.value = '0.4';
+    volumeInput.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(audio.volume).toBe(0.4);
+    expect(audio.muted).toBe(false);
+    expect(volumeButton.getAttribute('aria-label')).toBe('Mute audio');
+  });
+
+  it('should apply the loaded audio preferences', async () => {
+    preferencesStorage.load.mockReturnValue({ volume: 0.6, muted: true });
 
     const { fixture } = createFixture();
 
@@ -165,8 +289,21 @@ describe('AudioPlayer', () => {
     const volumeInput = fixture.nativeElement.querySelector(
       'input[type="range"]',
     ) as HTMLInputElement;
+    const volumeButton = fixture.nativeElement.querySelector(
+      '.volume-action',
+    ) as HTMLButtonElement;
 
     expect(audio.volume).toBe(0.6);
+    expect(audio.muted).toBe(true);
+    expect(volumeInput.value).toBe('0');
+    expect(volumeButton.getAttribute('aria-label')).toBe('Unmute audio');
+    expect(preferencesStorage.load).toHaveBeenCalledOnce();
+
+    volumeButton.click();
+    fixture.detectChanges();
+
+    expect(audio.volume).toBe(0.6);
+    expect(audio.muted).toBe(false);
     expect(volumeInput.value).toBe('0.6');
   });
 

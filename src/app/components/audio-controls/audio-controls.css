@@ -33,6 +33,7 @@
 }
 
 .playback-action:focus-visible,
+.volume-action:focus-visible,
 .volume-control input:focus-visible {
   outline: 0.2rem solid var(--color-focus);
   outline-offset: 0.25rem;
@@ -59,17 +60,34 @@
 
 .volume-control {
   display: grid;
-  grid-template-columns: 1.25rem minmax(0, 1fr);
-  gap: 0.45rem;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  gap: 0.2rem;
   align-items: center;
   min-width: 0;
+}
+
+.volume-action {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.35rem;
+  place-items: center;
+  color: var(--color-subtle);
+  background: transparent;
+  cursor: pointer;
+}
+
+.volume-action:hover {
+  color: var(--color-action);
+  background: var(--color-accent-soft);
 }
 
 .volume-icon {
   display: block;
   width: 1.15rem;
   height: 1.15rem;
-  color: var(--color-subtle);
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
@@ -80,6 +98,10 @@
 .volume-icon path:first-child {
   fill: currentColor;
   stroke: none;
+}
+
+.volume-slider {
+  min-width: 0;
 }
 
 .volume-control input {
