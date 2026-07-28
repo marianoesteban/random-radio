@@ -21,20 +21,11 @@
         <ul class="favorite-list">
           @for (favorite of favorites(); track stationId(favorite)) {
             <li>
-              <button
-                class="favorite-station"
-                type="button"
+              <app-favorite-station-item
+                [station]="favorite"
                 [disabled]="isLoading()"
-                (click)="selectStation(favorite)"
-                [attr.aria-label]="'Play favorite station ' + favorite.name"
-              >
-                <span class="favorite-name" [appTitleOnOverflow]="favorite.name">
-                  {{ favorite.name }}
-                </span>
-                <span class="favorite-country">
-                  <app-country-label [countryCode]="favorite.countryCode"></app-country-label>
-                </span>
-              </button>
+                (stationSelected)="selectStation($event)"
+              />
             </li>
           }
         </ul>
