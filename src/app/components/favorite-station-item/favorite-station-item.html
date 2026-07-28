@@ -1,0 +1,34 @@
+@let favorite = station();
+
+<button
+  class="favorite-station"
+  type="button"
+  [disabled]="disabled()"
+  (click)="selectStation()"
+  [attr.aria-label]="'Play favorite station ' + favorite.name"
+>
+  <span class="favorite-image" aria-hidden="true">
+    @if (canShowImage()) {
+      <img
+        [src]="favorite.imageUrl"
+        width="36"
+        height="36"
+        alt=""
+        loading="lazy"
+        decoding="async"
+        (error)="handleImageError()"
+      />
+    } @else {
+      <span class="favorite-image-fallback">RR</span>
+    }
+  </span>
+
+  <span class="favorite-details">
+    <span class="favorite-name" [appTitleOnOverflow]="favorite.name">
+      {{ favorite.name }}
+    </span>
+    <span class="favorite-country">
+      <app-country-label [countryCode]="favorite.countryCode"></app-country-label>
+    </span>
+  </span>
+</button>

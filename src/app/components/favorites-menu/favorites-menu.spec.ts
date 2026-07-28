@@ -1,6 +1,8 @@
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { vi } from 'vitest';
 import { RadioStation } from '../../models/radio-station';
+import { FavoriteStationItem } from '../favorite-station-item/favorite-station-item';
 import { FavoritesMenu } from './favorites-menu';
 
 function createStation(overrides: Partial<RadioStation> = {}): RadioStation {
@@ -43,75 +45,75 @@ describe('FavoritesMenu', () => {
     expect(fixture.nativeElement.querySelector('.favorites-panel')).toBeNull();
   });
 
-  it('should render favorite stations and emit menu and selection events', () => {
-    const station = createStation();
+  it('should emit when the menu button is clicked', () => {
     const fixture = TestBed.createComponent(FavoritesMenu);
     const menuHandler = vi.fn();
-    const selectionHandler = vi.fn();
 
     fixture.componentInstance.menuToggled.subscribe(menuHandler);
-    fixture.componentInstance.stationSelected.subscribe(selectionHandler);
-    fixture.componentRef.setInput('favorites', [station]);
+    fixture.componentRef.setInput('favorites', []);
     fixture.componentRef.setInput('isOpen', true);
     fixture.componentRef.setInput('isLoading', false);
     fixture.detectChanges();
 
     const menuButton = fixture.nativeElement.querySelector('.menu-button') as HTMLButtonElement;
-    const favoriteButton = fixture.nativeElement.querySelector(
-      '.favorite-station',
-    ) as HTMLButtonElement;
-    const favoriteName = fixture.nativeElement.querySelector('.favorite-name') as HTMLElement;
 
     expect(menuButton.getAttribute('aria-expanded')).toBe('true');
-    expect(favoriteButton.textContent).toContain('Station One');
-    expect(favoriteButton.textContent).toContain('Argentina');
-    expect(favoriteButton.getAttribute('aria-label')).toBe('Play favorite station Station One');
-    expect(favoriteName.hasAttribute('title')).toBe(false);
 
     menuButton.click();
-    favoriteButton.click();
 
     expect(menuHandler).toHaveBeenCalledOnce();
-    expect(selectionHandler).toHaveBeenCalledWith(station);
   });
 
-  it('should show an empty state and disable station buttons while loading', () => {
+  it('should render an item for each favorite and forward station selections', () => {
     const station = createStation();
-    const loadingFixture = TestBed.createComponent(FavoritesMenu);
-    loadingFixture.componentRef.setInput('favorites', [station]);
-    loadingFixture.componentRef.setInput('isOpen', true);
-    loadingFixture.componentRef.setInput('isLoading', true);
-    loadingFixture.detectChanges();
-
-    const disabledStation = loadingFixture.nativeElement.querySelector(
-      '.favorite-station',
-    ) as HTMLButtonElement;
-
-    expect(disabledStation.disabled).toBe(true);
-
-    const emptyFixture = TestBed.createComponent(FavoritesMenu);
-    emptyFixture.componentRef.setInput('favorites', []);
-    emptyFixture.componentRef.setInput('isOpen', true);
-    emptyFixture.componentRef.setInput('isLoading', false);
-    emptyFixture.detectChanges();
-
-    const emptyMessage = emptyFixture.nativeElement.querySelector(
-      '.empty-favorites',
-    ) as HTMLElement;
-
-    expect(emptyMessage.textContent).toContain('Your favorite stations will show up here.');
-  });
-
-  it('should show Unknown when a favorite has no country code', () => {
+    const secondStation = createStation({
+      source: { provider: 'radio-browser', externalId: 'station-2' },
+    });
     const fixture = TestBed.createComponent(FavoritesMenu);
-    fixture.componentRef.setInput('favorites', [createStation({ countryCode: '' })]);
+    const selectionHandler = vi.fn();
+
+    fixture.componentInstance.stationSelected.subscribe(selectionHandler);
+    fixture.componentRef.setInput('favorites', [station, secondStation]);
     fixture.componentRef.setInput('isOpen', true);
     fixture.componentRef.setInput('isLoading', false);
     fixture.detectChanges();
 
-    const favoriteCountry = fixture.nativeElement.querySelector('.favorite-country') as HTMLElement;
+    const favoriteItems = fixture.debugElement.queryAll(By.directive(FavoriteStationItem));
+    const firstItem = favoriteItems[0].componentInstance as FavoriteStationItem;
+    const secondItem = favoriteItems[1].componentInstance as FavoriteStationItem;
 
-    expect(favoriteCountry.textContent).toContain('Unknown');
+    expect(firstItem.station()).toBe(station);
+    expect(secondItem.station()).toBe(secondStation);
+
+    firstItem.stationSelected.emit(station);
+
+    expect(selectionHandler).toHaveBeenCalledWith(station);
+  });
+
+  it('should disable favorite items while a station is loading', () => {
+    const station = createStation();
+    const fixture = TestBed.createComponent(FavoritesMenu);
+    fixture.componentRef.setInput('favorites', [station]);
+    fixture.componentRef.setInput('isOpen', true);
+    fixture.componentRef.setInput('isLoading', true);
+    fixture.detectChanges();
+
+    const favoriteItem = fixture.debugElement.query(By.directive(FavoriteStationItem))
+      .componentInstance as FavoriteStationItem;
+
+    expect(favoriteItem.disabled()).toBe(true);
+  });
+
+  it('should show an empty state when there are no favorites', () => {
+    const fixture = TestBed.createComponent(FavoritesMenu);
+    fixture.componentRef.setInput('favorites', []);
+    fixture.componentRef.setInput('isOpen', true);
+    fixture.componentRef.setInput('isLoading', false);
+    fixture.detectChanges();
+
+    const emptyMessage = fixture.nativeElement.querySelector('.empty-favorites') as HTMLElement;
+
+    expect(emptyMessage.textContent).toContain('Your favorite stations will show up here.');
   });
 
   it('should emit export and import requests', () => {
