@@ -21,6 +21,23 @@ function createApiStation(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function createApiStations(count: number, startAt = 1) {
+  return Array.from({ length: count }, (_, index) => {
+    const stationNumber = index + startAt;
+
+    return createApiStation({
+      stationuuid: `station-${stationNumber}`,
+      name: `Station ${stationNumber}`,
+      url_resolved: `https://stream.example.com/${stationNumber}`,
+    });
+  });
+}
+
+async function flushPromises(): Promise<void> {
+  await Promise.resolve();
+  await Promise.resolve();
+}
+
 describe('RadioBrowser', () => {
   let service: RadioBrowser;
   let http: HttpTestingController;
@@ -42,8 +59,7 @@ describe('RadioBrowser', () => {
     expect(service).toBeTruthy();
   });
 
-  it('should request one playable random station with the expected filters', async () => {
-    const station = createApiStation();
+  it('should request a batch of playable random stations with the expected filters', async () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5);
 
     const stationPromise = service.getRandomStation();
@@ -51,21 +67,98 @@ describe('RadioBrowser', () => {
     const searchRequest = http.expectOne((request) => request.url === `${baseUrl}/stations/search`);
     expect(searchRequest.request.method).toBe('GET');
     expect(searchRequest.request.params.get('hidebroken')).toBe('true');
-    expect(searchRequest.request.params.get('limit')).toBe('1');
+    expect(searchRequest.request.params.get('limit')).toBe('5');
     expect(searchRequest.request.params.get('offset')).toBe('50');
     expect(searchRequest.request.params.get('order')).toBe('random');
-    searchRequest.flush([station]);
+    searchRequest.flush(createApiStations(5));
 
     await expect(stationPromise).resolves.toEqual({
       source: {
         provider: 'radio-browser',
         externalId: 'station-1',
       },
-      name: 'Station One',
-      streamUrl: 'https://stream.example.com/live',
+      name: 'Station 1',
+      streamUrl: 'https://stream.example.com/1',
       homepageUrl: 'https://example.com',
       imageUrl: 'https://example.com/favicon.ico',
       countryCode: 'AR',
+    });
+  });
+
+  it('should return queued stations without making another request', async () => {
+    const firstStationPromise = service.getRandomStation();
+
+    http
+      .expectOne((request) => request.url === `${baseUrl}/stations/search`)
+      .flush(createApiStations(5));
+
+    await expect(firstStationPromise).resolves.toMatchObject({
+      source: { externalId: 'station-1' },
+    });
+    await expect(service.getRandomStation()).resolves.toMatchObject({
+      source: { externalId: 'station-2' },
+    });
+    http.expectNone((request) => request.url === `${baseUrl}/stations/search`);
+  });
+
+  it('should share a batch request between concurrent calls', async () => {
+    const firstStationPromise = service.getRandomStation();
+    const secondStationPromise = service.getRandomStation();
+
+    http
+      .expectOne((request) => request.url === `${baseUrl}/stations/search`)
+      .flush(createApiStations(5));
+
+    await expect(firstStationPromise).resolves.toMatchObject({
+      source: { externalId: 'station-1' },
+    });
+    await expect(secondStationPromise).resolves.toMatchObject({
+      source: { externalId: 'station-2' },
+    });
+  });
+
+  it('should refill the queue in the background when two stations remain', async () => {
+    const firstStationPromise = service.getRandomStation();
+    http
+      .expectOne((request) => request.url === `${baseUrl}/stations/search`)
+      .flush(createApiStations(3));
+    await firstStationPromise;
+
+    const refillRequest = http.expectOne(
+      (request) => request.url === `${baseUrl}/stations/search`,
+    );
+    refillRequest.flush(createApiStations(5, 4));
+
+    await expect(service.getRandomStation()).resolves.toMatchObject({
+      source: { externalId: 'station-2' },
+    });
+    await expect(service.getRandomStation()).resolves.toMatchObject({
+      source: { externalId: 'station-3' },
+    });
+    await expect(service.getRandomStation()).resolves.toMatchObject({
+      source: { externalId: 'station-4' },
+    });
+  });
+
+  it('should retry a failed background refill without interrupting queued stations', async () => {
+    const firstStationPromise = service.getRandomStation();
+    http
+      .expectOne((request) => request.url === `${baseUrl}/stations/search`)
+      .flush(createApiStations(3));
+    await firstStationPromise;
+
+    http
+      .expectOne((request) => request.url === `${baseUrl}/stations/search`)
+      .flush('Unavailable', { status: 503, statusText: 'Service Unavailable' });
+    await flushPromises();
+
+    const secondStationPromise = service.getRandomStation();
+    http
+      .expectOne((request) => request.url === `${baseUrl}/stations/search`)
+      .flush(createApiStations(5, 4));
+
+    await expect(secondStationPromise).resolves.toMatchObject({
+      source: { externalId: 'station-2' },
     });
   });
 
@@ -84,7 +177,13 @@ describe('RadioBrowser', () => {
 
     http
       .expectOne((request) => request.url === `${baseUrl}/stations/search`)
-      .flush([createApiStation({ url_resolved: '' })]);
+      .flush([
+        createApiStation({ url_resolved: '' }),
+        ...createApiStations(4).map((station, index) => ({
+          ...station,
+          stationuuid: `fallback-station-${index + 2}`,
+        })),
+      ]);
 
     await expect(stationPromise).resolves.toMatchObject({
       streamUrl: 'https://example.com/live',
