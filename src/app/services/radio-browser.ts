@@ -19,12 +19,49 @@ export class RadioBrowser {
 
   private readonly http = inject(HttpClient);
   private readonly baseUrl = 'https://de1.api.radio-browser.info/json';
+  private readonly stationBatchSize = 5;
+  private readonly refillThreshold = 2;
   private readonly randomOffsetLimit = 100;
+  private readonly stationQueue: RadioStation[] = [];
+  private refillPromise: Promise<void> | null = null;
 
   async getRandomStation(): Promise<RadioStation> {
+    while (true) {
+      const station = this.stationQueue.shift();
+
+      if (station) {
+        if (this.stationQueue.length <= this.refillThreshold) {
+          void this.refillQueue().catch(() => undefined);
+        }
+
+        return station;
+      }
+
+      await this.refillQueue();
+    }
+  }
+
+  async reportStationClick(stationId: string): Promise<void> {
+    await firstValueFrom(this.http.get<unknown>(`${this.baseUrl}/url/${stationId}`));
+  }
+
+  private async refillQueue(): Promise<void> {
+    const activeRefill = this.refillPromise ?? this.fetchStations();
+    this.refillPromise = activeRefill;
+
+    try {
+      await activeRefill;
+    } finally {
+      if (this.refillPromise === activeRefill) {
+        this.refillPromise = null;
+      }
+    }
+  }
+
+  private async fetchStations(): Promise<void> {
     const params = new HttpParams()
       .set('hidebroken', 'true')
-      .set('limit', '1')
+      .set('limit', this.stationBatchSize)
       .set('offset', this.randomOffset())
       .set('order', 'random');
 
@@ -32,17 +69,13 @@ export class RadioBrowser {
       this.http.get<RadioBrowserStation[]>(`${this.baseUrl}/stations/search`, { params }),
     );
 
-    const station = stations.find((candidate) => candidate.url_resolved || candidate.url);
+    const playableStations = stations.filter((station) => station.url_resolved || station.url);
 
-    if (!station) {
+    if (playableStations.length === 0) {
       throw new Error('No playable station was returned.');
     }
 
-    return this.toRadioStation(station);
-  }
-
-  async reportStationClick(stationId: string): Promise<void> {
-    await firstValueFrom(this.http.get<unknown>(`${this.baseUrl}/url/${stationId}`));
+    this.stationQueue.push(...playableStations.map((station) => this.toRadioStation(station)));
   }
 
   private toRadioStation(station: RadioBrowserStation): RadioStation {
