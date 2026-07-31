@@ -52,18 +52,21 @@ describe('AudioPlayer', () => {
     fixture: ComponentFixture<AudioPlayer>;
     stateHandler: Mock;
     playbackStartedHandler: Mock;
+    playbackFailedHandler: Mock;
   } {
     const fixture = TestBed.createComponent(AudioPlayer);
     const stateHandler = vi.fn();
     const playbackStartedHandler = vi.fn();
+    const playbackFailedHandler = vi.fn();
 
     fixture.componentInstance.playerStateChanged.subscribe(stateHandler);
     fixture.componentInstance.playbackStarted.subscribe(playbackStartedHandler);
+    fixture.componentInstance.playbackFailed.subscribe(playbackFailedHandler);
     fixture.componentRef.setInput('source', source);
     fixture.componentRef.setInput('disabled', false);
     fixture.detectChanges();
 
-    return { fixture, stateHandler, playbackStartedHandler };
+    return { fixture, stateHandler, playbackStartedHandler, playbackFailedHandler };
   }
 
   it('should render a source without playing when autoplay is disabled', async () => {
@@ -179,9 +182,7 @@ describe('AudioPlayer', () => {
     const volumeInput = fixture.nativeElement.querySelector(
       'input[type="range"]',
     ) as HTMLInputElement;
-    const volumeButton = fixture.nativeElement.querySelector(
-      '.volume-action',
-    ) as HTMLButtonElement;
+    const volumeButton = fixture.nativeElement.querySelector('.volume-action') as HTMLButtonElement;
 
     volumeInput.value = '0.35';
     volumeInput.dispatchEvent(new Event('input'));
@@ -217,9 +218,7 @@ describe('AudioPlayer', () => {
     const volumeInput = fixture.nativeElement.querySelector(
       'input[type="range"]',
     ) as HTMLInputElement;
-    const volumeButton = fixture.nativeElement.querySelector(
-      '.volume-action',
-    ) as HTMLButtonElement;
+    const volumeButton = fixture.nativeElement.querySelector('.volume-action') as HTMLButtonElement;
 
     volumeInput.value = '0.65';
     volumeInput.dispatchEvent(new Event('input'));
@@ -261,9 +260,7 @@ describe('AudioPlayer', () => {
     const volumeInput = fixture.nativeElement.querySelector(
       'input[type="range"]',
     ) as HTMLInputElement;
-    const volumeButton = fixture.nativeElement.querySelector(
-      '.volume-action',
-    ) as HTMLButtonElement;
+    const volumeButton = fixture.nativeElement.querySelector('.volume-action') as HTMLButtonElement;
 
     volumeButton.click();
     fixture.detectChanges();
@@ -289,9 +286,7 @@ describe('AudioPlayer', () => {
     const volumeInput = fixture.nativeElement.querySelector(
       'input[type="range"]',
     ) as HTMLInputElement;
-    const volumeButton = fixture.nativeElement.querySelector(
-      '.volume-action',
-    ) as HTMLButtonElement;
+    const volumeButton = fixture.nativeElement.querySelector('.volume-action') as HTMLButtonElement;
 
     expect(audio.volume).toBe(0.6);
     expect(audio.muted).toBe(true);
@@ -365,8 +360,10 @@ describe('AudioPlayer', () => {
 
   it('should emit an error when playback fails', async () => {
     playAudio.mockRejectedValue(new Error('blocked'));
+    const source = createSource();
 
-    const { fixture, stateHandler, playbackStartedHandler } = createFixture();
+    const { fixture, stateHandler, playbackStartedHandler, playbackFailedHandler } =
+      createFixture(source);
 
     await settlePlayback(fixture);
 
@@ -376,10 +373,35 @@ describe('AudioPlayer', () => {
       isBuffering: false,
       error: 'playback-failed',
     });
+    expect(playbackFailedHandler).toHaveBeenCalledWith({
+      source,
+      error: 'playback-failed',
+    });
+  });
+
+  it('should distinguish autoplay being blocked from a broken stream', async () => {
+    const blockedError = new Error('Autoplay is not allowed');
+    blockedError.name = 'NotAllowedError';
+    playAudio.mockRejectedValue(blockedError);
+
+    const { fixture, stateHandler, playbackFailedHandler } = createFixture();
+
+    await settlePlayback(fixture);
+
+    expect(stateHandler).toHaveBeenCalledWith({
+      isPlaying: false,
+      isBuffering: false,
+      error: 'autoplay-blocked',
+    });
+    expect(playbackFailedHandler).toHaveBeenCalledWith({
+      source: createSource(),
+      error: 'autoplay-blocked',
+    });
   });
 
   it('should emit an error when the stream stops responding', async () => {
-    const { fixture, stateHandler } = createFixture();
+    const source = createSource();
+    const { fixture, stateHandler, playbackFailedHandler } = createFixture(source);
 
     await settlePlayback(fixture);
 
@@ -390,6 +412,10 @@ describe('AudioPlayer', () => {
     expect(stateHandler).toHaveBeenCalledWith({
       isPlaying: false,
       isBuffering: false,
+      error: 'stream-failed',
+    });
+    expect(playbackFailedHandler).toHaveBeenCalledWith({
+      source,
       error: 'stream-failed',
     });
   });

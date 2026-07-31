@@ -143,6 +143,12 @@ p {
   content: '\2605';
 }
 
+.favorite-error {
+  grid-column: 1 / -1;
+  color: var(--color-error);
+  font-size: 0.9rem;
+}
+
 @media (max-width: 34rem) {
   .station {
     grid-template-columns: 3.5rem minmax(0, 1fr);

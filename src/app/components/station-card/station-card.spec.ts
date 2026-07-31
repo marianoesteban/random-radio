@@ -107,4 +107,18 @@ describe('StationCard', () => {
 
     expect(favoriteHandler).toHaveBeenCalledWith(station);
   });
+
+  it('should show favorite persistence errors as an alert', () => {
+    const fixture = TestBed.createComponent(StationCard);
+
+    fixture.componentRef.setInput('station', createStation());
+    fixture.componentRef.setInput('isFavorite', false);
+    fixture.componentRef.setInput('favoriteError', 'Favorites could not be saved in this browser.');
+    fixture.detectChanges();
+
+    const error = fixture.nativeElement.querySelector('.favorite-error') as HTMLElement;
+
+    expect(error.getAttribute('role')).toBe('alert');
+    expect(error.textContent).toContain('Favorites could not be saved in this browser.');
+  });
 });
