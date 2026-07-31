@@ -64,6 +64,56 @@ describe('FavoritesMenu', () => {
     expect(menuHandler).toHaveBeenCalledOnce();
   });
 
+  it('should dismiss an open menu when clicking outside it', () => {
+    const fixture = TestBed.createComponent(FavoritesMenu);
+    const menuHandler = vi.fn();
+
+    fixture.componentInstance.menuToggled.subscribe(menuHandler);
+    fixture.componentRef.setInput('favorites', []);
+    fixture.componentRef.setInput('isOpen', true);
+    fixture.componentRef.setInput('isLoading', false);
+    fixture.detectChanges();
+
+    document.body.click();
+
+    expect(menuHandler).toHaveBeenCalledOnce();
+  });
+
+  it('should keep an open menu open when clicking inside it', () => {
+    const fixture = TestBed.createComponent(FavoritesMenu);
+    const menuHandler = vi.fn();
+
+    fixture.componentInstance.menuToggled.subscribe(menuHandler);
+    fixture.componentRef.setInput('favorites', []);
+    fixture.componentRef.setInput('isOpen', true);
+    fixture.componentRef.setInput('isLoading', false);
+    fixture.detectChanges();
+
+    const panel = fixture.nativeElement.querySelector('.favorites-panel') as HTMLElement;
+
+    panel.click();
+
+    expect(menuHandler).not.toHaveBeenCalled();
+  });
+
+  it('should dismiss an open menu with Escape and return focus to its button', () => {
+    const fixture = TestBed.createComponent(FavoritesMenu);
+    const menuHandler = vi.fn();
+
+    fixture.componentInstance.menuToggled.subscribe(menuHandler);
+    fixture.componentRef.setInput('favorites', []);
+    fixture.componentRef.setInput('isOpen', true);
+    fixture.componentRef.setInput('isLoading', false);
+    fixture.detectChanges();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+
+    const menuButton = fixture.nativeElement.querySelector('.menu-button') as HTMLButtonElement;
+
+    expect(menuHandler).toHaveBeenCalledOnce();
+    expect(document.activeElement).toBe(menuButton);
+  });
+
   it('should render an item for each favorite and forward station selections', () => {
     const station = createStation();
     const secondStation = createStation({
