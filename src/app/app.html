@@ -56,10 +56,12 @@
       [station]="station()"
       [autoplay]="shouldAutoplayStation()"
       [isFavorite]="isCurrentStationFavorite()"
+      [favoriteError]="favoritePersistenceError()"
       [isLoading]="isLoading()"
-      [error]="statusError()"
+      [error]="stationError()"
       (favoriteToggled)="toggleFavoriteStation($event)"
       (playbackStarted)="handlePlaybackStarted($event)"
+      (playbackFailed)="handlePlaybackFailed($event)"
     ></app-radio-station-player>
   </section>
 </main>

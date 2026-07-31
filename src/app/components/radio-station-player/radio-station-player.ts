@@ -4,6 +4,7 @@ import {
   AudioPlayer,
   AudioPlayerError,
   AudioPlayerState,
+  AudioPlaybackFailure,
   AudioSource,
 } from '../audio-player/audio-player';
 import { PlayerStatus } from '../player-status/player-status';
@@ -15,11 +16,36 @@ interface ActiveRadioStation {
   readonly autoplay: boolean;
 }
 
-const audioPlayerErrorMessages: Record<AudioPlayerError, string> = {
-  'player-unavailable': 'The audio player is not available.',
-  'playback-failed': 'The station could not be played. Try another one.',
-  'stream-failed': 'This stream stopped responding. Try another station.',
+export type PlaybackRecovery = 'select-another-station' | 'user-action-required' | 'none';
+
+interface AudioPlayerErrorDetails {
+  readonly message: string;
+  readonly recovery: PlaybackRecovery;
+}
+
+const audioPlayerErrorDetails: Record<AudioPlayerError, AudioPlayerErrorDetails> = {
+  'autoplay-blocked': {
+    message: 'Press play to start this station.',
+    recovery: 'user-action-required',
+  },
+  'player-unavailable': {
+    message: 'The audio player is not available.',
+    recovery: 'none',
+  },
+  'playback-failed': {
+    message: 'The station could not be played. Try another one.',
+    recovery: 'select-another-station',
+  },
+  'stream-failed': {
+    message: 'This stream stopped responding. Try another station.',
+    recovery: 'select-another-station',
+  },
 };
+
+export interface RadioStationPlaybackFailure {
+  readonly source: RadioStationSource;
+  readonly recovery: PlaybackRecovery;
+}
 
 @Component({
   selector: 'app-radio-station-player',
@@ -31,10 +57,12 @@ export class RadioStationPlayer {
   readonly station = input.required<RadioStation | null>();
   readonly autoplay = input(true);
   readonly isFavorite = input.required<boolean>();
+  readonly favoriteError = input('');
   readonly isLoading = input(false);
   readonly error = input('');
   readonly favoriteToggled = output<RadioStation>();
   readonly playbackStarted = output<RadioStationSource>();
+  readonly playbackFailed = output<RadioStationPlaybackFailure>();
 
   protected readonly activeStation = signal<ActiveRadioStation | null>(null);
   protected readonly playerState = signal<AudioPlayerState>({
@@ -45,7 +73,7 @@ export class RadioStationPlayer {
   protected readonly statusError = computed(() => {
     const playerError = this.playerState().error;
 
-    return this.error() || (playerError ? audioPlayerErrorMessages[playerError] : '');
+    return this.error() || (playerError ? audioPlayerErrorDetails[playerError].message : '');
   });
   protected readonly isStatusPlaying = computed(() =>
     this.isLoading() ? false : this.playerState().isPlaying,
@@ -87,5 +115,18 @@ export class RadioStationPlayer {
 
   protected handlePlaybackStarted(source: RadioStationSource): void {
     this.playbackStarted.emit(source);
+  }
+
+  protected handlePlaybackFailed(failure: AudioPlaybackFailure): void {
+    const activeStation = this.activeStation();
+
+    if (!activeStation || activeStation.source !== failure.source) {
+      return;
+    }
+
+    this.playbackFailed.emit({
+      source: activeStation.station.source,
+      recovery: audioPlayerErrorDetails[failure.error].recovery,
+    });
   }
 }

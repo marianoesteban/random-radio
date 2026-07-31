@@ -16,7 +16,16 @@ export interface AudioSource {
   readonly url: string;
 }
 
-export type AudioPlayerError = 'player-unavailable' | 'playback-failed' | 'stream-failed';
+export type AudioPlayerError =
+  | 'autoplay-blocked'
+  | 'player-unavailable'
+  | 'playback-failed'
+  | 'stream-failed';
+
+export interface AudioPlaybackFailure {
+  readonly source: AudioSource;
+  readonly error: AudioPlayerError;
+}
 
 export interface AudioPlayerState {
   isPlaying: boolean;
@@ -42,6 +51,7 @@ export class AudioPlayer {
   readonly disabled = input(false);
   readonly playerStateChanged = output<AudioPlayerState>();
   readonly playbackStarted = output<AudioSource>();
+  readonly playbackFailed = output<AudioPlaybackFailure>();
 
   protected readonly isPlaying = signal(false);
   protected readonly isMuted = signal(this.initialPreferences.muted);
@@ -76,11 +86,7 @@ export class AudioPlayer {
     const audio = this.audio()?.nativeElement;
 
     if (!audio) {
-      this.setPlayerState({
-        isPlaying: false,
-        isBuffering: false,
-        error: 'player-unavailable',
-      });
+      this.failPlayback(this.source(), 'player-unavailable');
       return;
     }
 
@@ -135,11 +141,7 @@ export class AudioPlayer {
       return;
     }
 
-    this.setPlayerState({
-      isPlaying: false,
-      isBuffering: false,
-      error: 'stream-failed',
-    });
+    this.failPlayback(this.source(), 'stream-failed');
   }
 
   protected handleAudioPlaying(): void {
@@ -172,17 +174,15 @@ export class AudioPlayer {
 
       this.pendingPlayback = null;
       this.playbackStarted.emit(source);
-    } catch {
+    } catch (cause: unknown) {
       if (playback && !this.isCurrentPlayback(playback, source)) {
         return;
       }
 
       this.pendingPlayback = null;
-      this.setPlayerState({
-        isPlaying: false,
-        isBuffering: false,
-        error: 'playback-failed',
-      });
+      const error = this.isAutoplayBlocked(cause) ? 'autoplay-blocked' : 'playback-failed';
+
+      this.failPlayback(source, error);
     }
   }
 
@@ -227,6 +227,24 @@ export class AudioPlayer {
 
   private isCurrentPlayback(playback: Promise<void>, source: AudioSource): boolean {
     return playback === this.pendingPlayback && source === this.source();
+  }
+
+  private isAutoplayBlocked(cause: unknown): boolean {
+    return (
+      typeof cause === 'object' &&
+      cause !== null &&
+      'name' in cause &&
+      cause.name === 'NotAllowedError'
+    );
+  }
+
+  private failPlayback(source: AudioSource, error: AudioPlayerError): void {
+    this.setPlayerState({
+      isPlaying: false,
+      isBuffering: false,
+      error,
+    });
+    this.playbackFailed.emit({ source, error });
   }
 
   private setPlayerState(state: AudioPlayerState): void {

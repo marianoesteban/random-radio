@@ -10,6 +10,7 @@
   <app-station-card
     [station]="currentStation.station"
     [isFavorite]="isFavorite()"
+    [favoriteError]="favoriteError()"
     (favoriteToggled)="favoriteToggled.emit($event)"
   ></app-station-card>
 
@@ -19,5 +20,6 @@
     [autoplay]="currentStation.autoplay"
     (playerStateChanged)="handlePlayerStateChange($event)"
     (playbackStarted)="handlePlaybackStarted(currentStation.station.source)"
+    (playbackFailed)="handlePlaybackFailed($event)"
   ></app-audio-player>
 }

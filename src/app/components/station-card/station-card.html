@@ -46,4 +46,8 @@
   >
     <span class="favorite-icon" aria-hidden="true"></span>
   </button>
+
+  @if (favoriteError()) {
+    <p class="favorite-error" role="alert">{{ favoriteError() }}</p>
+  }
 </article>

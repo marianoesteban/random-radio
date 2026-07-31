@@ -13,6 +13,7 @@ import { CountryLabel } from '../country-label/country-label';
 export class StationCard {
   readonly station = input.required<RadioStation>();
   readonly isFavorite = input.required<boolean>();
+  readonly favoriteError = input('');
   readonly favoriteToggled = output<RadioStation>();
 
   protected readonly homepage = computed(() => {
