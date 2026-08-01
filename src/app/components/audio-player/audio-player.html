@@ -1,6 +1,7 @@
 <app-audio-controls
   [disabled]="disabled()"
   [isPlaying]="isPlaying()"
+  [isTuning]="isBuffering() || isTuning()"
   [isMuted]="isMuted()"
   [volume]="volume()"
   (playbackRequested)="handlePlaybackButton()"

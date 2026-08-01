@@ -8,6 +8,7 @@ import { Component, computed, input, output } from '@angular/core';
 export class AudioControls {
   readonly disabled = input(false);
   readonly isPlaying = input.required<boolean>();
+  readonly isTuning = input(false);
   readonly isMuted = input.required<boolean>();
   readonly volume = input.required<number>();
   readonly playbackRequested = output<void>();
@@ -31,6 +32,13 @@ export class AudioControls {
   });
   protected readonly volumeButtonLabel = computed(() => {
     return this.isMuted() ? 'Unmute audio' : 'Mute audio';
+  });
+  protected readonly playbackButtonLabel = computed(() => {
+    if (this.isTuning()) {
+      return this.disabled() ? 'Tuning in' : 'Cancel tuning';
+    }
+
+    return this.isPlaying() ? 'Stop audio' : 'Play audio';
   });
 
   protected requestPlayback(): void {

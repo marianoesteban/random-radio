@@ -21,9 +21,7 @@ describe('AudioControls', () => {
     const volumeInput = fixture.nativeElement.querySelector(
       'input[type="range"]',
     ) as HTMLInputElement;
-    const volumeButton = fixture.nativeElement.querySelector(
-      '.volume-action',
-    ) as HTMLButtonElement;
+    const volumeButton = fixture.nativeElement.querySelector('.volume-action') as HTMLButtonElement;
     const volumeValue = fixture.nativeElement.querySelector('.volume-value') as HTMLElement;
 
     expect(button.disabled).toBe(false);
@@ -49,9 +47,7 @@ describe('AudioControls', () => {
     const volumeInput = fixture.nativeElement.querySelector(
       'input[type="range"]',
     ) as HTMLInputElement;
-    const volumeButton = fixture.nativeElement.querySelector(
-      '.volume-action',
-    ) as HTMLButtonElement;
+    const volumeButton = fixture.nativeElement.querySelector('.volume-action') as HTMLButtonElement;
 
     expect(volumeInput.value).toBe('0');
     expect(volumeInput.getAttribute('aria-valuetext')).toBe('Muted');
@@ -87,6 +83,25 @@ describe('AudioControls', () => {
     expect(button.querySelector('.play-icon')).not.toBeNull();
   });
 
+  it('should render a cancellable tuning indicator', () => {
+    const fixture = TestBed.createComponent(AudioControls);
+    fixture.componentRef.setInput('disabled', false);
+    fixture.componentRef.setInput('isPlaying', false);
+    fixture.componentRef.setInput('isTuning', true);
+    fixture.componentRef.setInput('isMuted', false);
+    fixture.componentRef.setInput('volume', 1);
+    fixture.detectChanges();
+
+    const controls = fixture.nativeElement.querySelector('.audio-controls') as HTMLElement;
+    const button = fixture.nativeElement.querySelector('.playback-action') as HTMLButtonElement;
+
+    expect(button.disabled).toBe(false);
+    expect(button.getAttribute('aria-label')).toBe('Cancel tuning');
+    expect(button.getAttribute('aria-busy')).toBe('true');
+    expect(controls.getAttribute('aria-busy')).toBe('true');
+    expect(button.querySelector('.tuning-indicator')).not.toBeNull();
+  });
+
   it('should emit playback, volume toggle, and volume change requests', () => {
     const fixture = TestBed.createComponent(AudioControls);
     const playbackHandler = vi.fn();
@@ -108,9 +123,7 @@ describe('AudioControls', () => {
     const volumeInput = fixture.nativeElement.querySelector(
       'input[type="range"]',
     ) as HTMLInputElement;
-    const volumeButton = fixture.nativeElement.querySelector(
-      '.volume-action',
-    ) as HTMLButtonElement;
+    const volumeButton = fixture.nativeElement.querySelector('.volume-action') as HTMLButtonElement;
 
     button.click();
     volumeButton.click();

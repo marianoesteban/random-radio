@@ -1,5 +1,6 @@
 import {
   Component,
+  DestroyRef,
   ElementRef,
   effect,
   inject,
@@ -20,7 +21,8 @@ export type AudioPlayerError =
   | 'autoplay-blocked'
   | 'player-unavailable'
   | 'playback-failed'
-  | 'stream-failed';
+  | 'stream-failed'
+  | 'stream-timeout';
 
 export interface AudioPlaybackFailure {
   readonly source: AudioSource;
@@ -40,25 +42,32 @@ export interface AudioPlayerState {
   styleUrl: './audio-player.css',
 })
 export class AudioPlayer {
+  private static readonly tuningTimeoutMilliseconds = 15_000;
+
   private readonly audio = viewChild<ElementRef<HTMLAudioElement>>('audioPlayer');
+  private readonly destroyRef = inject(DestroyRef);
   private readonly preferencesStorage = inject(AudioPreferencesStorage);
   private readonly initialPreferences = this.preferencesStorage.load();
   private pendingPlayback: Promise<void> | null = null;
+  private tuningTimeout: ReturnType<typeof setTimeout> | null = null;
   private lastCommittedVolume = 1;
 
   readonly source = input.required<AudioSource>();
   readonly autoplay = input(true);
   readonly disabled = input(false);
+  readonly isTuning = input(false);
   readonly playerStateChanged = output<AudioPlayerState>();
   readonly playbackStarted = output<AudioSource>();
   readonly playbackFailed = output<AudioPlaybackFailure>();
 
   protected readonly isPlaying = signal(false);
+  protected readonly isBuffering = signal(false);
   protected readonly isMuted = signal(this.initialPreferences.muted);
   protected readonly volume = signal(this.initialPreferences.volume);
 
   constructor() {
     this.lastCommittedVolume = this.volume();
+    this.destroyRef.onDestroy(() => this.clearTuningTimeout());
 
     effect(() => {
       const audio = this.audio()?.nativeElement;
@@ -80,6 +89,11 @@ export class AudioPlayer {
   protected async handlePlaybackButton(): Promise<void> {
     if (this.isPlaying()) {
       this.stopPlayback();
+      return;
+    }
+
+    if (this.isBuffering()) {
+      this.cancelTuning();
       return;
     }
 
@@ -145,6 +159,7 @@ export class AudioPlayer {
   }
 
   protected handleAudioPlaying(): void {
+    this.clearTuningTimeout();
     this.setPlayerState({ isPlaying: true, isBuffering: false, error: null });
   }
 
@@ -153,6 +168,7 @@ export class AudioPlayer {
   }
 
   private async playSource(audio: HTMLAudioElement, source: AudioSource): Promise<void> {
+    this.clearTuningTimeout();
     this.setPlayerState({ isPlaying: false, isBuffering: true, error: null });
 
     audio.src = source.url;
@@ -166,6 +182,7 @@ export class AudioPlayer {
     try {
       playback = audio.play();
       this.pendingPlayback = playback;
+      this.startTuningTimeout(audio, source, playback);
       await playback;
 
       if (!this.isCurrentPlayback(playback, source)) {
@@ -173,6 +190,7 @@ export class AudioPlayer {
       }
 
       this.pendingPlayback = null;
+      this.clearTuningTimeout();
       this.playbackStarted.emit(source);
     } catch (cause: unknown) {
       if (playback && !this.isCurrentPlayback(playback, source)) {
@@ -187,11 +205,16 @@ export class AudioPlayer {
   }
 
   private prepareSource(audio: HTMLAudioElement): void {
+    this.clearTuningTimeout();
     this.pendingPlayback = null;
     audio.autoplay = false;
     audio.volume = untracked(() => this.volume());
     audio.muted = untracked(() => this.isMuted());
     this.setPlayerState({ isPlaying: false, isBuffering: false, error: null });
+  }
+
+  private cancelTuning(): void {
+    this.stopPlayback();
   }
 
   private stopPlayback(): void {
@@ -201,6 +224,7 @@ export class AudioPlayer {
       return;
     }
 
+    this.clearTuningTimeout();
     this.pendingPlayback = null;
     audio.pause();
     audio.removeAttribute('src');
@@ -239,6 +263,7 @@ export class AudioPlayer {
   }
 
   private failPlayback(source: AudioSource, error: AudioPlayerError): void {
+    this.clearTuningTimeout();
     this.setPlayerState({
       isPlaying: false,
       isBuffering: false,
@@ -249,6 +274,34 @@ export class AudioPlayer {
 
   private setPlayerState(state: AudioPlayerState): void {
     this.isPlaying.set(state.isPlaying);
+    this.isBuffering.set(state.isBuffering);
     this.playerStateChanged.emit(state);
+  }
+
+  private startTuningTimeout(
+    audio: HTMLAudioElement,
+    source: AudioSource,
+    playback: Promise<void>,
+  ): void {
+    this.tuningTimeout = setTimeout(() => {
+      if (!this.isCurrentPlayback(playback, source) || !this.isBuffering()) {
+        return;
+      }
+
+      this.pendingPlayback = null;
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
+      this.failPlayback(source, 'stream-timeout');
+    }, AudioPlayer.tuningTimeoutMilliseconds);
+  }
+
+  private clearTuningTimeout(): void {
+    if (this.tuningTimeout === null) {
+      return;
+    }
+
+    clearTimeout(this.tuningTimeout);
+    this.tuningTimeout = null;
   }
 }

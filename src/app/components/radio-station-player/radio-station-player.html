@@ -15,6 +15,7 @@
 
   <app-audio-player
     [disabled]="isLoading()"
+    [isTuning]="isLoading()"
     [source]="currentStation.source"
     [autoplay]="currentStation.autoplay"
     (playerStateChanged)="handlePlayerStateChange($event)"
