@@ -93,6 +93,25 @@ describe('AudioPlayer', () => {
     expect(playAudio).toHaveBeenCalledOnce();
   });
 
+  it('should not present a generic disabled state as tuning', async () => {
+    const fixture = TestBed.createComponent(AudioPlayer);
+
+    fixture.componentRef.setInput('source', createSource());
+    fixture.componentRef.setInput('autoplay', false);
+    fixture.componentRef.setInput('disabled', true);
+    fixture.detectChanges();
+    await settlePlayback(fixture);
+
+    const playbackButton = fixture.nativeElement.querySelector(
+      '.playback-action',
+    ) as HTMLButtonElement;
+
+    expect(playbackButton.disabled).toBe(true);
+    expect(playbackButton.getAttribute('aria-label')).toBe('Play audio');
+    expect(playbackButton.getAttribute('aria-busy')).toBe('false');
+    expect(playbackButton.querySelector('.tuning-indicator')).toBeNull();
+  });
+
   async function settlePlayback(fixture: ComponentFixture<AudioPlayer>): Promise<void> {
     await fixture.whenStable();
     await flushPromises();
@@ -418,5 +437,68 @@ describe('AudioPlayer', () => {
       source,
       error: 'stream-failed',
     });
+  });
+
+  it('should allow tuning to be cancelled', async () => {
+    playAudio.mockReturnValue(new Promise<void>(() => undefined));
+    const { fixture, stateHandler, playbackFailedHandler } = createFixture();
+    await flushPromises();
+    fixture.detectChanges();
+
+    const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
+    const playbackButton = fixture.nativeElement.querySelector(
+      '.playback-action',
+    ) as HTMLButtonElement;
+
+    expect(playbackButton.getAttribute('aria-label')).toBe('Cancel tuning');
+    expect(playbackButton.querySelector('.tuning-indicator')).not.toBeNull();
+
+    playbackButton.click();
+    fixture.detectChanges();
+
+    expect(pauseAudio).toHaveBeenCalledOnce();
+    expect(audio.src).toBe('');
+    expect(playbackButton.getAttribute('aria-label')).toBe('Play audio');
+    expect(stateHandler).toHaveBeenLastCalledWith({
+      isPlaying: false,
+      isBuffering: false,
+      error: null,
+    });
+    expect(playbackFailedHandler).not.toHaveBeenCalled();
+  });
+
+  it('should stop tuning and report a timeout when a station does not respond', async () => {
+    vi.useFakeTimers();
+    playAudio.mockReturnValue(new Promise<void>(() => undefined));
+
+    try {
+      const source = createSource();
+      const { fixture, stateHandler, playbackFailedHandler } = createFixture(source);
+      await flushPromises();
+      fixture.detectChanges();
+
+      await vi.advanceTimersByTimeAsync(15_000);
+      fixture.detectChanges();
+
+      const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
+      const playbackButton = fixture.nativeElement.querySelector(
+        '.playback-action',
+      ) as HTMLButtonElement;
+
+      expect(pauseAudio).toHaveBeenCalledOnce();
+      expect(audio.src).toBe('');
+      expect(playbackButton.getAttribute('aria-label')).toBe('Play audio');
+      expect(stateHandler).toHaveBeenLastCalledWith({
+        isPlaying: false,
+        isBuffering: false,
+        error: 'stream-timeout',
+      });
+      expect(playbackFailedHandler).toHaveBeenCalledWith({
+        source,
+        error: 'stream-timeout',
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

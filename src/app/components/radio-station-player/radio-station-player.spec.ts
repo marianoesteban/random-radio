@@ -99,6 +99,7 @@ describe('RadioStationPlayer', () => {
   it.each([
     ['playback-failed', 'select-another-station'],
     ['stream-failed', 'select-another-station'],
+    ['stream-timeout', 'select-another-station'],
     ['autoplay-blocked', 'user-action-required'],
     ['player-unavailable', 'none'],
   ] satisfies ReadonlyArray<readonly [AudioPlayerError, PlaybackRecovery]>)(
@@ -132,6 +133,7 @@ describe('RadioStationPlayer', () => {
     ['player-unavailable', 'The audio player is not available.'],
     ['playback-failed', 'The station could not be played. Try another one.'],
     ['stream-failed', 'This stream stopped responding. Try another station.'],
+    ['stream-timeout', 'This station took too long to respond. Try another one.'],
   ] satisfies ReadonlyArray<readonly [AudioPlayerError, string]>)(
     'should translate %s to a user-facing message',
     async (error, message) => {

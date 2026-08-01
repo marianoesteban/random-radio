@@ -40,6 +40,10 @@ const audioPlayerErrorDetails: Record<AudioPlayerError, AudioPlayerErrorDetails>
     message: 'This stream stopped responding. Try another station.',
     recovery: 'select-another-station',
   },
+  'stream-timeout': {
+    message: 'This station took too long to respond. Try another one.',
+    recovery: 'select-another-station',
+  },
 };
 
 export interface RadioStationPlaybackFailure {

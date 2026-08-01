@@ -1,12 +1,19 @@
-<div class="audio-controls" role="group" aria-label="Audio controls">
+<div class="audio-controls" role="group" aria-label="Audio controls" [attr.aria-busy]="isTuning()">
   <button
     class="playback-action"
     type="button"
     [disabled]="disabled()"
     (click)="requestPlayback()"
-    [attr.aria-label]="isPlaying() ? 'Stop audio' : 'Play audio'"
+    [attr.aria-label]="playbackButtonLabel()"
+    [attr.aria-busy]="isTuning()"
   >
-    @if (isPlaying()) {
+    @if (isTuning()) {
+      <span class="tuning-indicator" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+      </span>
+    } @else if (isPlaying()) {
       <span class="stop-icon" aria-hidden="true"></span>
     } @else {
       <span class="play-icon" aria-hidden="true"></span>
