@@ -6,18 +6,22 @@ interface StoredFavorites {
   readonly stations: RadioStation[];
 }
 
+export const maximumFavoriteStations = 500;
+
 export type FavoritesImportResult =
   | { readonly success: true; readonly imported: number; readonly total: number }
-  | { readonly success: false; readonly reason: 'invalid' | 'persistence' };
+  | { readonly success: false; readonly reason: 'invalid' | 'limit' | 'persistence' };
+
+export type FavoriteToggleResult =
+  | { readonly success: true; readonly action: 'added' | 'removed' }
+  | { readonly success: false; readonly reason: 'limit' | 'persistence' };
 
 @Service()
 export class FavoritesStore {
   private readonly storageKey = 'random-radio:favorites';
   private readonly favoriteStations = signal<RadioStation[]>(this.load());
-  private readonly storageError = signal('');
 
   readonly stations = this.favoriteStations.asReadonly();
-  readonly persistenceError = this.storageError.asReadonly();
 
   isFavorite(station: RadioStation): boolean {
     const stationId = radioStationId(station);
@@ -25,14 +29,34 @@ export class FavoritesStore {
     return this.favoriteStations().some((favorite) => radioStationId(favorite) === stationId);
   }
 
-  toggle(station: RadioStation): void {
+  toggle(station: RadioStation): FavoriteToggleResult {
     const stationId = radioStationId(station);
-    const favorites = this.isFavorite(station)
-      ? this.favoriteStations().filter((favorite) => radioStationId(favorite) !== stationId)
-      : [station, ...this.favoriteStations()];
+    const currentFavorites = this.favoriteStations();
 
-    this.favoriteStations.set(favorites);
-    this.save(favorites);
+    if (this.isFavorite(station)) {
+      const favorites = currentFavorites.filter(
+        (favorite) => radioStationId(favorite) !== stationId,
+      );
+
+      if (this.save(favorites)) {
+        this.favoriteStations.set(favorites);
+        return { success: true, action: 'removed' };
+      }
+      return { success: false, reason: 'persistence' };
+    }
+
+    if (currentFavorites.length >= maximumFavoriteStations) {
+      return { success: false, reason: 'limit' };
+    }
+
+    const favorites = [station, ...currentFavorites];
+
+    if (this.save(favorites)) {
+      this.favoriteStations.set(favorites);
+      return { success: true, action: 'added' };
+    }
+
+    return { success: false, reason: 'persistence' };
   }
 
   exportFavorites(): string {
@@ -83,6 +107,10 @@ export class FavoritesStore {
       return { success: true, imported: 0, total: this.favoriteStations().length };
     }
 
+    if (this.favoriteStations().length + newStations.length > maximumFavoriteStations) {
+      return { success: false, reason: 'limit' };
+    }
+
     const favorites = [...newStations, ...this.favoriteStations()];
 
     if (!this.save(favorites)) {
@@ -112,7 +140,8 @@ export class FavoritesStore {
 
       return value['stations']
         .map(parseRadioStation)
-        .filter((favorite): favorite is RadioStation => favorite !== null);
+        .filter((favorite): favorite is RadioStation => favorite !== null)
+        .slice(0, maximumFavoriteStations);
     } catch {
       return [];
     }
@@ -126,10 +155,8 @@ export class FavoritesStore {
       };
 
       localStorage.setItem(this.storageKey, JSON.stringify(storedFavorites));
-      this.storageError.set('');
       return true;
     } catch {
-      this.storageError.set('Favorites could not be saved in this browser.');
       return false;
     }
   }

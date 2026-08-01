@@ -10,7 +10,6 @@
   <app-station-card
     [station]="currentStation.station"
     [isFavorite]="isFavorite()"
-    [favoriteError]="favoriteError()"
     (favoriteToggled)="favoriteToggled.emit($event)"
   ></app-station-card>
 

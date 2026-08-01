@@ -90,4 +90,18 @@ describe('FavoritesTransfer', () => {
     expect(transfer.message()).toBe('');
     expect(transfer.failed()).toBe(false);
   });
+
+  it('should explain when an import would exceed the favorite limit', async () => {
+    const file = {
+      size: 100,
+      text: vi.fn().mockResolvedValue('{"version":1,"stations":[]}'),
+    } as unknown as File;
+    favoritesStore.importFavorites.mockReturnValue({ success: false, reason: 'limit' });
+    const transfer = TestBed.inject(FavoritesTransfer);
+
+    await transfer.importFromFile(file);
+
+    expect(transfer.message()).toBe('You can save up to 500 favorite stations.');
+    expect(transfer.failed()).toBe(true);
+  });
 });

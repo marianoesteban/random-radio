@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 import { RadioStation } from '../models/radio-station';
-import { FavoritesStore } from './favorites-store';
+import { FavoritesStore, maximumFavoriteStations } from './favorites-store';
 
 function createStation(overrides: Partial<RadioStation> = {}): RadioStation {
   return {
@@ -16,6 +16,15 @@ function createStation(overrides: Partial<RadioStation> = {}): RadioStation {
     countryCode: 'AR',
     ...overrides,
   };
+}
+
+function createStations(count: number): RadioStation[] {
+  return Array.from({ length: count }, (_, index) =>
+    createStation({
+      source: { provider: 'radio-browser', externalId: `station-${index}` },
+      name: `Station ${index}`,
+    }),
+  );
 }
 
 describe('FavoritesStore', () => {
@@ -96,31 +105,55 @@ describe('FavoritesStore', () => {
     });
   });
 
-  it('should expose an error when favorites cannot be persisted', () => {
+  it('should report when favorites cannot be persisted', () => {
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('Storage unavailable');
     });
     const store = TestBed.inject(FavoritesStore);
 
-    store.toggle(createStation());
+    const result = store.toggle(createStation());
 
-    expect(store.persistenceError()).toBe('Favorites could not be saved in this browser.');
+    expect(result).toEqual({ success: false, reason: 'persistence' });
+    expect(store.stations()).toEqual([]);
   });
 
-  it('should clear the persistence error after a later successful save', () => {
+  it('should allow a later toggle after persistence becomes available', () => {
     const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('Storage unavailable');
     });
     const store = TestBed.inject(FavoritesStore);
     const station = createStation();
 
-    store.toggle(station);
-    expect(store.persistenceError()).toBe('Favorites could not be saved in this browser.');
+    expect(store.toggle(station)).toEqual({ success: false, reason: 'persistence' });
 
     setItem.mockRestore();
-    store.toggle(station);
 
-    expect(store.persistenceError()).toBe('');
+    expect(store.toggle(station)).toEqual({ success: true, action: 'added' });
+    expect(store.stations()).toEqual([station]);
+  });
+
+  it('should reject additions beyond the favorite limit and allow removals at the limit', () => {
+    const favorites = createStations(maximumFavoriteStations);
+    localStorage.setItem(
+      'random-radio:favorites',
+      JSON.stringify({ version: 1, stations: favorites }),
+    );
+    const store = TestBed.inject(FavoritesStore);
+
+    const limitResult = store.toggle(
+      createStation({
+        source: { provider: 'radio-browser', externalId: 'one-too-many' },
+      }),
+    );
+
+    expect(store.stations()).toHaveLength(maximumFavoriteStations);
+    expect(limitResult).toEqual({ success: false, reason: 'limit' });
+
+    const removalResult = store.toggle(favorites[0]);
+
+    expect(removalResult).toEqual({ success: true, action: 'removed' });
+    expect(store.stations()).toHaveLength(maximumFavoriteStations - 1);
+    expect(store.isFavorite(favorites[0])).toBe(false);
   });
 
   it('should export favorites in the versioned storage format', () => {
@@ -175,6 +208,37 @@ describe('FavoritesStore', () => {
     expect(store.stations()).toEqual([station]);
   });
 
+  it('should reject imports that would exceed the favorite limit after deduplication', () => {
+    const existingStation = createStation({
+      source: { provider: 'radio-browser', externalId: 'existing' },
+    });
+    const importedStations = createStations(maximumFavoriteStations);
+    const store = TestBed.inject(FavoritesStore);
+    store.toggle(existingStation);
+
+    const result = store.importFavorites(
+      JSON.stringify({
+        version: 1,
+        stations: [existingStation, importedStations[0], ...importedStations],
+      }),
+    );
+
+    expect(result).toEqual({ success: false, reason: 'limit' });
+    expect(store.stations()).toEqual([existingStation]);
+  });
+
+  it('should load no more than the favorite limit from existing storage', () => {
+    const favorites = createStations(maximumFavoriteStations + 1);
+    localStorage.setItem(
+      'random-radio:favorites',
+      JSON.stringify({ version: 1, stations: favorites }),
+    );
+
+    const store = TestBed.inject(FavoritesStore);
+
+    expect(store.stations()).toEqual(favorites.slice(0, maximumFavoriteStations));
+  });
+
   it.each([
     '{not-json',
     JSON.stringify({ version: 2, stations: [] }),
@@ -200,6 +264,5 @@ describe('FavoritesStore', () => {
 
     expect(result).toEqual({ success: false, reason: 'persistence' });
     expect(store.stations()).toEqual([]);
-    expect(store.persistenceError()).toBe('Favorites could not be saved in this browser.');
   });
 });

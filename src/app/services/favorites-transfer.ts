@@ -1,6 +1,6 @@
 import { DOCUMENT } from '@angular/common';
 import { DestroyRef, inject, Service, signal } from '@angular/core';
-import { FavoritesStore } from '../stores/favorites-store';
+import { FavoritesStore, maximumFavoriteStations } from '../stores/favorites-store';
 
 @Service()
 export class FavoritesTransfer {
@@ -61,12 +61,7 @@ export class FavoritesTransfer {
       const result = this.favoritesStore.importFavorites(await file.text());
 
       if (!result.success) {
-        this.showMessage(
-          result.reason === 'invalid'
-            ? 'That file is not a valid Random Radio favorites export.'
-            : 'The imported favorites could not be saved in this browser.',
-          true,
-        );
+        this.showMessage(this.importErrorMessage(result.reason), true);
         return;
       }
 
@@ -95,6 +90,17 @@ export class FavoritesTransfer {
 
     if (!failed) {
       this.messageTimer = setTimeout(() => this.clearMessage(), 5_000);
+    }
+  }
+
+  private importErrorMessage(reason: 'invalid' | 'limit' | 'persistence'): string {
+    switch (reason) {
+      case 'invalid':
+        return 'That file is not a valid Random Radio favorites export.';
+      case 'limit':
+        return `You can save up to ${maximumFavoriteStations} favorite stations.`;
+      case 'persistence':
+        return 'The imported favorites could not be saved in this browser.';
     }
   }
 

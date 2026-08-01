@@ -22,6 +22,27 @@
   padding: 1.25rem;
 }
 
+.favorite-notification {
+  position: fixed;
+  z-index: 10;
+  inset-block-start: 1rem;
+  inset-inline-start: 50%;
+  width: max-content;
+  max-width: min(32rem, calc(100vw - 2rem));
+  margin: 0;
+  border: 1px solid color-mix(in srgb, var(--color-error) 45%, transparent);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  color: var(--color-error);
+  background: var(--color-surface-raised);
+  box-shadow: 0 0.75rem 2rem rgb(var(--shadow-color) / 24%);
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
+  transform: translateX(-50%);
+}
+
 .player {
   position: relative;
   width: min(100%, 38rem);
@@ -146,6 +167,11 @@ h1 {
 
   .player {
     margin-top: 0;
+  }
+
+  .favorite-notification {
+    inset-block-start: 0.75rem;
+    max-width: calc(100vw - 1.5rem);
   }
 
   .topbar {

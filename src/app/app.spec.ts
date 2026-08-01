@@ -3,8 +3,10 @@ import { Title } from '@angular/platform-browser';
 import { type Mock, type MockInstance, vi } from 'vitest';
 import { App } from './app';
 import { RadioStation } from './models/radio-station';
+import { NotificationService } from './services/notification-service';
 import { RadioBrowser } from './services/radio-browser';
 import { LastPlayedStationStorage } from './storage/last-played-station-storage';
+import { maximumFavoriteStations } from './stores/favorites-store';
 
 function createStation(overrides: Partial<RadioStation> = {}): RadioStation {
   return {
@@ -280,7 +282,23 @@ describe('App', () => {
       expect(favorites).toEqual({ version: 1, stations: [] });
     });
 
-    it('should show favorite persistence errors beside the favorite control', async () => {
+    it('should clear an existing notification after a successful favorite toggle', async () => {
+      const fixture = createFixture();
+      await playRandomStation(fixture);
+      const notifications = TestBed.inject(NotificationService);
+
+      notifications.show('Existing notification.');
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.favorite-notification')).not.toBeNull();
+
+      (fixture.nativeElement.querySelector('.favorite-toggle') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.favorite-notification')).toBeNull();
+    });
+
+    it('should show favorite persistence errors in a global notification', async () => {
       const fixture = createFixture();
       await playRandomStation(fixture);
       vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
@@ -293,12 +311,50 @@ describe('App', () => {
       favoriteButton.click();
       fixture.detectChanges();
 
-      const favoriteError = fixture.nativeElement.querySelector('.favorite-error') as HTMLElement;
+      const favoriteError = fixture.nativeElement.querySelector(
+        '.favorite-notification',
+      ) as HTMLElement;
       const playerStatus = fixture.nativeElement.querySelector('.status') as HTMLElement;
 
       expect(favoriteError.getAttribute('role')).toBe('alert');
       expect(favoriteError.textContent).toContain('Favorites could not be saved in this browser.');
       expect(playerStatus.textContent).not.toContain('Favorites could not be saved');
+    });
+
+    it('should explain the favorite limit in a global notification', async () => {
+      const favorites = Array.from({ length: maximumFavoriteStations }, (_, index) =>
+        createStation({
+          source: { provider: 'radio-browser', externalId: `favorite-${index}` },
+        }),
+      );
+      localStorage.setItem(
+        'random-radio:favorites',
+        JSON.stringify({ version: 1, stations: favorites }),
+      );
+      const fixture = createFixture();
+      await playRandomStation(
+        fixture,
+        createStation({
+          source: { provider: 'radio-browser', externalId: 'one-too-many' },
+        }),
+      );
+
+      (fixture.nativeElement.querySelector('.favorite-toggle') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      const favoriteError = fixture.nativeElement.querySelector(
+        '.favorite-notification',
+      ) as HTMLElement;
+
+      expect(favoriteError.getAttribute('role')).toBe('alert');
+      expect(favoriteError.textContent).toContain(
+        `You can save up to ${maximumFavoriteStations} favorite stations.`,
+      );
+      const storedFavorites = JSON.parse(
+        localStorage.getItem('random-radio:favorites') ?? 'null',
+      ) as { stations: RadioStation[] };
+
+      expect(storedFavorites.stations).toHaveLength(maximumFavoriteStations);
     });
 
     it('should load a favorite station and play it when selected', async () => {
