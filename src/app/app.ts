@@ -7,10 +7,11 @@ import {
 } from './components/radio-station-player/radio-station-player';
 import { RadioStation, RadioStationSource } from './models/radio-station';
 import { FavoritesTransfer } from './services/favorites-transfer';
+import { NotificationService } from './services/notification-service';
 import { RadioBrowser } from './services/radio-browser';
 import { ThemeService } from './services/theme';
 import { LastPlayedStationStorage } from './storage/last-played-station-storage';
-import { FavoritesStore } from './stores/favorites-store';
+import { FavoritesStore, maximumFavoriteStations } from './stores/favorites-store';
 
 @Component({
   selector: 'app-root',
@@ -37,10 +38,10 @@ export class App {
   protected readonly isLoading = signal(false);
   protected readonly stationError = signal('');
   protected readonly isFavoritesMenuOpen = signal(false);
+  protected readonly notifications = inject(NotificationService);
   protected readonly favoritesTransfer = inject(FavoritesTransfer);
   protected readonly theme = inject(ThemeService);
   protected readonly favoriteStations = this.favoritesStore.stations;
-  protected readonly favoritePersistenceError = this.favoritesStore.persistenceError;
   protected readonly isCurrentStationFavorite = computed(() => {
     const station = this.station();
 
@@ -119,7 +120,18 @@ export class App {
   }
 
   protected toggleFavoriteStation(station: RadioStation): void {
-    this.favoritesStore.toggle(station);
+    const result = this.favoritesStore.toggle(station);
+
+    if (result.success) {
+      this.notifications.clear();
+      return;
+    }
+
+    this.notifications.show(
+      result.reason === 'limit'
+        ? `You can save up to ${maximumFavoriteStations} favorite stations.`
+        : 'Favorites could not be saved in this browser.',
+    );
   }
 
   protected playFavoriteStation(station: RadioStation): void {

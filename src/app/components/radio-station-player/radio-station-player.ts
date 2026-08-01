@@ -57,7 +57,6 @@ export class RadioStationPlayer {
   readonly station = input.required<RadioStation | null>();
   readonly autoplay = input(true);
   readonly isFavorite = input.required<boolean>();
-  readonly favoriteError = input('');
   readonly isLoading = input(false);
   readonly error = input('');
   readonly favoriteToggled = output<RadioStation>();

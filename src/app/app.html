@@ -1,4 +1,10 @@
 <main class="shell">
+  @if (notifications.message()) {
+    <p class="favorite-notification" role="alert">
+      {{ notifications.message() }}
+    </p>
+  }
+
   <section class="player" aria-labelledby="page-title">
     <div class="topbar">
       <p class="eyebrow">Random Radio</p>
@@ -56,7 +62,6 @@
       [station]="station()"
       [autoplay]="shouldAutoplayStation()"
       [isFavorite]="isCurrentStationFavorite()"
-      [favoriteError]="favoritePersistenceError()"
       [isLoading]="isLoading()"
       [error]="stationError()"
       (favoriteToggled)="toggleFavoriteStation($event)"
