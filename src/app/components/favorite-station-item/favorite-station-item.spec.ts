@@ -88,6 +88,24 @@ describe('FavoriteStationItem', () => {
     expect(button.disabled).toBe(true);
   });
 
+  it('should distinguish the selected station without disabling it', () => {
+    const fixture = TestBed.createComponent(FavoriteStationItem);
+    fixture.componentRef.setInput('station', createStation());
+    fixture.componentRef.setInput('isSelected', true);
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('.favorite-station') as HTMLButtonElement;
+    const indicator = fixture.nativeElement.querySelector('.selected-indicator') as HTMLElement;
+
+    expect(button.classList.contains('is-selected')).toBe(true);
+    expect(button.getAttribute('aria-current')).toBe('true');
+    expect(button.getAttribute('aria-label')).toBe(
+      'Play currently selected favorite station Station One',
+    );
+    expect(button.disabled).toBe(false);
+    expect(indicator.textContent).toContain('Selected');
+  });
+
   it('should show Unknown when the station has no country code', () => {
     const fixture = TestBed.createComponent(FavoriteStationItem);
     fixture.componentRef.setInput('station', createStation({ countryCode: '' }));

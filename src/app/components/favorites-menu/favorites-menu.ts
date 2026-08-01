@@ -19,6 +19,7 @@ export class FavoritesMenu {
   protected readonly stationId = radioStationId;
 
   readonly favorites = input.required<RadioStation[]>();
+  readonly selectedStation = input<RadioStation | null>(null);
   readonly isOpen = input.required<boolean>();
   readonly isLoading = input.required<boolean>();
   readonly isImporting = input(false);
@@ -52,6 +53,12 @@ export class FavoritesMenu {
 
   protected selectStation(station: RadioStation): void {
     this.stationSelected.emit(station);
+  }
+
+  protected isSelectedStation(station: RadioStation): boolean {
+    const selectedStation = this.selectedStation();
+
+    return selectedStation !== null && radioStationId(station) === radioStationId(selectedStation);
   }
 
   protected exportFavorites(): void {

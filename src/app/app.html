@@ -30,6 +30,7 @@
 
         <app-favorites-menu
           [favorites]="favoriteStations()"
+          [selectedStation]="station()"
           [isOpen]="isFavoritesMenuOpen()"
           [isLoading]="isLoading()"
           [isImporting]="favoritesTransfer.isImporting()"

@@ -2,10 +2,15 @@
 
 <button
   class="favorite-station"
+  [class.is-selected]="isSelected()"
   type="button"
   [disabled]="disabled()"
   (click)="selectStation()"
-  [attr.aria-label]="'Play favorite station ' + favorite.name"
+  [attr.aria-current]="isSelected() ? 'true' : null"
+  [attr.aria-label]="
+    (isSelected() ? 'Play currently selected favorite station ' : 'Play favorite station ') +
+    favorite.name
+  "
 >
   <span class="favorite-image" aria-hidden="true">
     @if (canShowImage()) {
@@ -27,8 +32,13 @@
     <span class="favorite-name" [appTitleOnOverflow]="favorite.name">
       {{ favorite.name }}
     </span>
-    <span class="favorite-country">
-      <app-country-label [countryCode]="favorite.countryCode"></app-country-label>
+    <span class="favorite-metadata">
+      <span class="favorite-country">
+        <app-country-label [countryCode]="favorite.countryCode"></app-country-label>
+      </span>
+      @if (isSelected()) {
+        <span class="selected-indicator">Selected</span>
+      }
     </span>
   </span>
 </button>
