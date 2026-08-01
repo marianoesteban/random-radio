@@ -154,6 +154,26 @@ describe('FavoritesMenu', () => {
     expect(favoriteItem.disabled()).toBe(true);
   });
 
+  it('should identify the favorite that matches the selected station', () => {
+    const selectedStation = createStation();
+    const otherStation = createStation({
+      source: { provider: 'radio-browser', externalId: 'station-2' },
+    });
+    const fixture = TestBed.createComponent(FavoritesMenu);
+    fixture.componentRef.setInput('favorites', [selectedStation, otherStation]);
+    fixture.componentRef.setInput('selectedStation', { ...selectedStation, name: 'Updated name' });
+    fixture.componentRef.setInput('isOpen', true);
+    fixture.componentRef.setInput('isLoading', false);
+    fixture.detectChanges();
+
+    const favoriteItems = fixture.debugElement.queryAll(By.directive(FavoriteStationItem));
+    const firstItem = favoriteItems[0].componentInstance as FavoriteStationItem;
+    const secondItem = favoriteItems[1].componentInstance as FavoriteStationItem;
+
+    expect(firstItem.isSelected()).toBe(true);
+    expect(secondItem.isSelected()).toBe(false);
+  });
+
   it('should show an empty state when there are no favorites', () => {
     const fixture = TestBed.createComponent(FavoritesMenu);
     fixture.componentRef.setInput('favorites', []);

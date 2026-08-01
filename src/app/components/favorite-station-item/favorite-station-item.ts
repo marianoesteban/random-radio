@@ -14,6 +14,7 @@ export class FavoriteStationItem {
 
   readonly station = input.required<RadioStation>();
   readonly disabled = input(false);
+  readonly isSelected = input(false);
   readonly stationSelected = output<RadioStation>();
 
   protected readonly canShowImage = computed(() => {

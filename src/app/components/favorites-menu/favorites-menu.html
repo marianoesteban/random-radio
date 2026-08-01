@@ -25,6 +25,7 @@
               <app-favorite-station-item
                 [station]="favorite"
                 [disabled]="isLoading()"
+                [isSelected]="isSelectedStation(favorite)"
                 (stationSelected)="selectStation($event)"
               />
             </li>
