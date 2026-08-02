@@ -167,9 +167,13 @@ p {
 
 @media (max-width: 34rem) {
   .menu-button {
-    min-height: 2.1rem;
-    padding: 0.35rem 0.5rem;
+    min-height: 2.75rem;
+    padding: 0.45rem 0.6rem;
     font-size: 0.84rem;
+  }
+
+  .transfer-action {
+    min-height: 2.75rem;
   }
 
   .favorites-panel {
