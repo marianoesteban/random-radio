@@ -60,11 +60,8 @@ p {
 }
 
 .station-details h2 {
-  overflow: hidden;
   font-size: 1.35rem;
   line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .station-details p {
@@ -157,7 +154,14 @@ p {
     height: 3.25rem;
   }
 
+  .station-logo-link,
+  .station > .station-logo {
+    align-self: start;
+    margin-block-start: 0.4rem;
+  }
+
   .station-details {
+    min-height: 4.1rem;
     padding-inline-end: 0;
   }
 

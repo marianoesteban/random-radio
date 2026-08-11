@@ -42,9 +42,7 @@ describe('StationCard', () => {
     const favoriteButton = fixture.nativeElement.querySelector(
       '.favorite-toggle',
     ) as HTMLButtonElement;
-    const stationName = fixture.nativeElement.querySelector(
-      '.station-details h2',
-    ) as HTMLHeadingElement;
+    const stationName = fixture.nativeElement.querySelector('app-expandable-text') as HTMLElement;
 
     expect(card.textContent).toContain('Station One');
     expect(stationName.hasAttribute('title')).toBe(false);
