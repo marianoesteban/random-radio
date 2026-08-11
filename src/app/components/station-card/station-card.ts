@@ -1,12 +1,12 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { Component, computed, input, output } from '@angular/core';
-import { TitleOnOverflow } from '../../directives/title-on-overflow';
 import { RadioStation } from '../../models/radio-station';
 import { CountryLabel } from '../country-label/country-label';
+import { ExpandableText } from '../expandable-text/expandable-text';
 
 @Component({
   selector: 'app-station-card',
-  imports: [CountryLabel, NgTemplateOutlet, TitleOnOverflow],
+  imports: [CountryLabel, ExpandableText, NgTemplateOutlet],
   templateUrl: './station-card.html',
   styleUrl: './station-card.css',
 })

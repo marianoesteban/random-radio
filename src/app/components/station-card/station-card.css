@@ -60,11 +60,8 @@ p {
 }
 
 .station-details h2 {
-  overflow: hidden;
   font-size: 1.35rem;
   line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .station-details p {
@@ -145,16 +142,27 @@ p {
 
 @media (max-width: 34rem) {
   .station {
-    grid-template-columns: 3.5rem minmax(0, 1fr);
-    gap: 0.75rem;
+    grid-template-columns: 3.25rem minmax(0, 1fr) 2.75rem;
+    gap: 0.65rem;
     margin-top: 0.8rem;
     padding: 0.75rem;
   }
 
   .station-logo-link,
   .station-logo {
-    width: 3.5rem;
-    height: 3.5rem;
+    width: 3.25rem;
+    height: 3.25rem;
+  }
+
+  .station-logo-link,
+  .station > .station-logo {
+    align-self: start;
+    margin-block-start: 0.4rem;
+  }
+
+  .station-details {
+    min-height: 4.1rem;
+    padding-inline-end: 0;
   }
 
   .station-details h2 {
@@ -162,7 +170,9 @@ p {
   }
 
   .favorite-toggle {
-    inset-block-start: 0.5rem;
-    inset-inline-end: 0.5rem;
+    position: relative;
+    inset: auto;
+    width: 2.75rem;
+    height: 2.75rem;
   }
 }

@@ -25,7 +25,9 @@
   }
 
   <div class="station-details">
-    <h2 [appTitleOnOverflow]="currentStation.name">{{ currentStation.name }}</h2>
+    <h2>
+      <app-expandable-text [text]="currentStation.name"></app-expandable-text>
+    </h2>
     <p>
       <app-country-label [countryCode]="currentStation.countryCode"></app-country-label>
     </p>

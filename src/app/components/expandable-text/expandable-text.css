@@ -1,0 +1,37 @@
+:host {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:host(.is-expandable) {
+  cursor: pointer;
+}
+
+:host(.is-expandable:focus-visible) {
+  border-radius: 0.2rem;
+  outline: 0.2rem solid var(--color-focus);
+  outline-offset: 0.2rem;
+}
+
+:host(.is-expanded) {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+:host(.is-mobile) {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--mobile-line-clamp, 2);
+  line-clamp: var(--mobile-line-clamp, 2);
+  white-space: normal;
+}
+
+:host(.is-mobile.is-expanded) {
+  display: block;
+  -webkit-line-clamp: initial;
+  line-clamp: initial;
+}
