@@ -216,3 +216,53 @@ h1 {
     justify-content: flex-end;
   }
 }
+
+@media (orientation: landscape) and (max-height: 34rem) and (max-width: 64rem) {
+  .shell {
+    align-items: center;
+    padding: 0.75rem;
+  }
+
+  .player {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto auto 1fr;
+    column-gap: clamp(1rem, 4vw, 2.5rem);
+    row-gap: 0.4rem;
+    width: min(100%, 58rem);
+    margin-top: 0;
+  }
+
+  .topbar {
+    grid-column: 1 / -1;
+    align-items: center;
+    margin-bottom: 0;
+  }
+
+  .eyebrow {
+    margin-top: 0;
+  }
+
+  h1 {
+    grid-column: 1;
+    grid-row: 2 / span 2;
+    align-self: start;
+    font-size: clamp(2.5rem, 11vh, 3.5rem);
+    line-height: 0.94;
+  }
+
+  .primary-action {
+    grid-column: 2;
+    grid-row: 2;
+    width: 100%;
+    min-height: 2.75rem;
+    margin-top: 0;
+    padding: 0.65rem 0.9rem;
+  }
+
+  app-radio-station-player {
+    grid-column: 2;
+    grid-row: 3;
+    min-width: 0;
+  }
+}
