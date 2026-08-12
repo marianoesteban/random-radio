@@ -176,3 +176,34 @@ p {
     height: 2.75rem;
   }
 }
+
+@media (orientation: landscape) and (max-height: 34rem) and (max-width: 64rem) {
+  .station {
+    grid-template-columns: 3.25rem minmax(0, 1fr) 2.75rem;
+    gap: 0.65rem;
+    margin-top: 0.35rem;
+    padding: 0.65rem;
+  }
+
+  .station-logo-link,
+  .station-logo {
+    width: 3.25rem;
+    height: 3.25rem;
+  }
+
+  .station-details {
+    min-height: 3.25rem;
+    padding-inline-end: 0;
+  }
+
+  .station-details h2 {
+    font-size: 1.05rem;
+  }
+
+  .favorite-toggle {
+    position: relative;
+    inset: auto;
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+}
