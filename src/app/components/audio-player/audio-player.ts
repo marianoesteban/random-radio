@@ -21,6 +21,7 @@ export type AudioPlayerError =
   | 'autoplay-blocked'
   | 'player-unavailable'
   | 'playback-failed'
+  | 'stream-disconnected'
   | 'stream-failed'
   | 'stream-timeout';
 
@@ -51,6 +52,8 @@ export class AudioPlayer {
   private pendingPlayback: Promise<void> | null = null;
   private tuningTimeout: ReturnType<typeof setTimeout> | null = null;
   private lastCommittedVolume = 1;
+  private hasPlaybackStarted = false;
+  private currentError: AudioPlayerError | null = null;
 
   readonly source = input.required<AudioSource>();
   readonly autoplay = input(true);
@@ -155,20 +158,29 @@ export class AudioPlayer {
       return;
     }
 
-    this.failPlayback(this.source(), 'stream-failed');
+    this.failPlayback(
+      this.source(),
+      this.hasPlaybackStarted ? 'stream-disconnected' : 'stream-failed',
+    );
   }
 
   protected handleAudioPlaying(): void {
     this.clearTuningTimeout();
+    this.hasPlaybackStarted = true;
     this.setPlayerState({ isPlaying: true, isBuffering: false, error: null });
   }
 
   protected handleAudioStopped(): void {
-    this.setPlayerState({ isPlaying: false, isBuffering: false, error: null });
+    this.setPlayerState({
+      isPlaying: false,
+      isBuffering: false,
+      error: this.currentError,
+    });
   }
 
   private async playSource(audio: HTMLAudioElement, source: AudioSource): Promise<void> {
     this.clearTuningTimeout();
+    this.hasPlaybackStarted = false;
     this.setPlayerState({ isPlaying: false, isBuffering: true, error: null });
 
     audio.src = source.url;
@@ -207,6 +219,7 @@ export class AudioPlayer {
   private prepareSource(audio: HTMLAudioElement): void {
     this.clearTuningTimeout();
     this.pendingPlayback = null;
+    this.hasPlaybackStarted = false;
     audio.autoplay = false;
     audio.volume = untracked(() => this.volume());
     audio.muted = untracked(() => this.isMuted());
@@ -226,6 +239,7 @@ export class AudioPlayer {
 
     this.clearTuningTimeout();
     this.pendingPlayback = null;
+    this.hasPlaybackStarted = false;
     audio.pause();
     audio.removeAttribute('src');
     audio.load();
@@ -275,6 +289,7 @@ export class AudioPlayer {
   private setPlayerState(state: AudioPlayerState): void {
     this.isPlaying.set(state.isPlaying);
     this.isBuffering.set(state.isBuffering);
+    this.currentError = state.error;
     this.playerStateChanged.emit(state);
   }
 

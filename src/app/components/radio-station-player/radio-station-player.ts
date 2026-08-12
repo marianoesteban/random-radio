@@ -36,6 +36,10 @@ const audioPlayerErrorDetails: Record<AudioPlayerError, AudioPlayerErrorDetails>
     message: 'The station could not be played. Try another one.',
     recovery: 'select-another-station',
   },
+  'stream-disconnected': {
+    message: 'This stream disconnected. Press play to reconnect.',
+    recovery: 'user-action-required',
+  },
   'stream-failed': {
     message: 'This stream stopped responding. Try another station.',
     recovery: 'select-another-station',
