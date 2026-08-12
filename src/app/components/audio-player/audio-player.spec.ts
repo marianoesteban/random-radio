@@ -439,6 +439,29 @@ describe('AudioPlayer', () => {
     });
   });
 
+  it('should distinguish a disconnect after playback started from an unplayable stream', async () => {
+    const source = createSource();
+    const { fixture, stateHandler, playbackFailedHandler } = createFixture(source);
+
+    await settlePlayback(fixture);
+
+    const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
+    audio.dispatchEvent(new Event('playing'));
+    audio.dispatchEvent(new Event('error'));
+    audio.dispatchEvent(new Event('pause'));
+    fixture.detectChanges();
+
+    expect(stateHandler).toHaveBeenLastCalledWith({
+      isPlaying: false,
+      isBuffering: false,
+      error: 'stream-disconnected',
+    });
+    expect(playbackFailedHandler).toHaveBeenCalledWith({
+      source,
+      error: 'stream-disconnected',
+    });
+  });
+
   it('should allow tuning to be cancelled', async () => {
     playAudio.mockReturnValue(new Promise<void>(() => undefined));
     const { fixture, stateHandler, playbackFailedHandler } = createFixture();

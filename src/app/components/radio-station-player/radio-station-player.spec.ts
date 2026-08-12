@@ -92,12 +92,13 @@ describe('RadioStationPlayer', () => {
     expect(playbackStarted).toHaveBeenCalledWith(station.source);
     expect(playbackFailed).toHaveBeenCalledWith({
       source: station.source,
-      recovery: 'select-another-station',
+      recovery: 'user-action-required',
     });
   });
 
   it.each([
     ['playback-failed', 'select-another-station'],
+    ['stream-disconnected', 'user-action-required'],
     ['stream-failed', 'select-another-station'],
     ['stream-timeout', 'select-another-station'],
     ['autoplay-blocked', 'user-action-required'],
@@ -132,6 +133,7 @@ describe('RadioStationPlayer', () => {
     ['autoplay-blocked', 'Press play to start this station.'],
     ['player-unavailable', 'The audio player is not available.'],
     ['playback-failed', 'The station could not be played. Try another one.'],
+    ['stream-disconnected', 'This stream disconnected. Press play to reconnect.'],
     ['stream-failed', 'This stream stopped responding. Try another station.'],
     ['stream-timeout', 'This station took too long to respond. Try another one.'],
   ] satisfies ReadonlyArray<readonly [AudioPlayerError, string]>)(

@@ -597,16 +597,27 @@ describe('App', () => {
       expect(title.getTitle()).toBe('Random Radio - Station One');
     });
 
-    it('should automatically try another random station when a stream stops responding', async () => {
+    it('should automatically try another random station when a stream fails while tuning', async () => {
       const fixture = createFixture();
-      const audio = await playRandomStation(fixture);
+      const firstStation = createStation();
       const nextStation = createStation({
         source: { provider: 'radio-browser', externalId: 'station-2' },
         name: 'Station Two',
         streamUrl: 'https://stream.example.com/two',
       });
 
-      radioBrowser.getRandomStation.mockResolvedValue(nextStation);
+      radioBrowser.getRandomStation
+        .mockResolvedValueOnce(firstStation)
+        .mockResolvedValueOnce(nextStation);
+      playAudio
+        .mockReturnValueOnce(new Promise<void>(() => undefined))
+        .mockResolvedValueOnce(undefined);
+
+      (fixture.nativeElement.querySelector('.primary-action') as HTMLButtonElement).click();
+      await flushPromises();
+      fixture.detectChanges();
+
+      const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
 
       audio.dispatchEvent(new Event('error'));
       fixture.detectChanges();
@@ -617,6 +628,50 @@ describe('App', () => {
       expect(playAudio).toHaveBeenCalledTimes(2);
       expect(audio.src).toBe('https://stream.example.com/two');
       expect(title.getTitle()).toBe('Random Radio - Station Two');
+    });
+
+    it('should keep the current random station when its stream disconnects after playing', async () => {
+      const fixture = createFixture();
+      const audio = await playRandomStation(fixture);
+
+      audio.dispatchEvent(new Event('playing'));
+      audio.dispatchEvent(new Event('error'));
+      audio.dispatchEvent(new Event('pause'));
+      fixture.detectChanges();
+      await settlePlayback(fixture);
+
+      const status = fixture.nativeElement.querySelector('.status') as HTMLElement;
+
+      expect(radioBrowser.getRandomStation).toHaveBeenCalledOnce();
+      expect(playAudio).toHaveBeenCalledOnce();
+      expect(title.getTitle()).toBe('Random Radio - Station One');
+      expect(status.textContent).toContain('This stream disconnected. Press play to reconnect.');
+    });
+
+    it('should not select another random station when reconnecting the current station fails', async () => {
+      const fixture = createFixture();
+      const audio = await playRandomStation(fixture);
+
+      audio.dispatchEvent(new Event('playing'));
+      audio.dispatchEvent(new Event('error'));
+      fixture.detectChanges();
+      playAudio.mockRejectedValueOnce(new Error('reconnect failed'));
+
+      const playbackButton = fixture.nativeElement.querySelector(
+        '.playback-action',
+      ) as HTMLButtonElement;
+      playbackButton.click();
+      await settlePlayback(fixture);
+
+      const status = fixture.nativeElement.querySelector('.status') as HTMLElement;
+
+      expect(radioBrowser.getRandomStation).toHaveBeenCalledOnce();
+      expect(playAudio).toHaveBeenCalledTimes(2);
+      expect(audio.src).toBe('https://stream.example.com/live');
+      expect(title.getTitle()).toBe('Random Radio - Station One');
+      expect(status.textContent).toContain(
+        'Could not reconnect to this station. Press play to try again.',
+      );
     });
   });
 });

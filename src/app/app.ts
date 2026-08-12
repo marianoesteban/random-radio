@@ -32,6 +32,7 @@ export class App {
   private readonly defaultPageTitle = this.title.getTitle();
   private currentSelection: 'random' | 'other' = 'other';
   private randomPlaybackAttempts = 0;
+  private hasCurrentStationPlayed = false;
 
   protected readonly station = signal<RadioStation | null>(this.lastPlayedStationStorage.load());
   protected readonly shouldAutoplayStation = signal(false);
@@ -76,6 +77,11 @@ export class App {
 
     if (failure.recovery !== 'select-another-station') {
       this.stationError.set('');
+      return;
+    }
+
+    if (this.hasCurrentStationPlayed) {
+      this.stationError.set('Could not reconnect to this station. Press play to try again.');
       return;
     }
 
@@ -145,7 +151,8 @@ export class App {
   protected handlePlaybackStarted(source: RadioStationSource): void {
     const station = this.station();
 
-    if (station) {
+    if (station && this.isSourceForCurrentStation(source)) {
+      this.hasCurrentStationPlayed = true;
       this.lastPlayedStationStorage.save(station);
     }
 
@@ -168,6 +175,7 @@ export class App {
   }
 
   private selectStation(station: RadioStation): void {
+    this.hasCurrentStationPlayed = false;
     this.shouldAutoplayStation.set(true);
     this.station.set({ ...station });
     this.updatePageTitle(station.name);
