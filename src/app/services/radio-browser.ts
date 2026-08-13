@@ -41,6 +41,21 @@ export class RadioBrowser {
     }
   }
 
+  async getStation(stationId: string): Promise<RadioStation> {
+    const stations = await firstValueFrom(
+      this.http.get<RadioBrowserStation[]>(
+        `${this.baseUrl}/stations/byuuid/${encodeURIComponent(stationId)}`,
+      ),
+    );
+    const station = stations.find((candidate) => candidate.url_resolved || candidate.url);
+
+    if (!station) {
+      throw new Error('The station was not found or is not playable.');
+    }
+
+    return this.toRadioStation(station);
+  }
+
   async reportStationClick(stationId: string): Promise<void> {
     await firstValueFrom(this.http.get<unknown>(`${this.baseUrl}/url/${stationId}`));
   }

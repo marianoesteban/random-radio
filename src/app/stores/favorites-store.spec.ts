@@ -132,6 +132,41 @@ describe('FavoritesStore', () => {
     expect(store.stations()).toEqual([station]);
   });
 
+  it('should update and persist the current data for an existing favorite', () => {
+    const store = TestBed.inject(FavoritesStore);
+    const station = createStation();
+    const updatedStation = createStation({
+      name: 'Updated Station',
+      streamUrl: 'https://stream.example.com/updated',
+    });
+    store.toggle(station);
+
+    expect(store.update(updatedStation)).toEqual({ success: true });
+    expect(store.stations()).toEqual([updatedStation]);
+    expect(JSON.parse(localStorage.getItem('random-radio:favorites') ?? 'null')).toEqual({
+      version: 1,
+      stations: [updatedStation],
+    });
+  });
+
+  it('should not update a missing favorite or in-memory state when persistence fails', () => {
+    const store = TestBed.inject(FavoritesStore);
+    const station = createStation();
+
+    expect(store.update(station)).toEqual({ success: false, reason: 'not-found' });
+
+    store.toggle(station);
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('Storage unavailable');
+    });
+
+    expect(store.update(createStation({ name: 'Updated Station' }))).toEqual({
+      success: false,
+      reason: 'persistence',
+    });
+    expect(store.stations()).toEqual([station]);
+  });
+
   it('should reject additions beyond the favorite limit and allow removals at the limit', () => {
     const favorites = createStations(maximumFavoriteStations);
     localStorage.setItem(

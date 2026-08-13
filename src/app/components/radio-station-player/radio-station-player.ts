@@ -100,7 +100,16 @@ export class RadioStationPlayer {
           ? radioStationId(requestedStation) === radioStationId(activeStation.station)
           : requestedStation === activeStation;
 
-      if (isSameStation && isCurrentStationPlaying) {
+      if (
+        requestedStation &&
+        activeStation &&
+        isSameStation &&
+        isCurrentStationPlaying &&
+        requestedStation.streamUrl === activeStation.station.streamUrl
+      ) {
+        if (requestedStation !== activeStation.station) {
+          this.activeStation.set({ ...activeStation, station: requestedStation });
+        }
         return;
       }
 

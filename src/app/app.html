@@ -33,6 +33,7 @@
           [selectedStation]="station()"
           [isOpen]="isFavoritesMenuOpen()"
           [isLoading]="isLoading()"
+          [loadingStationId]="loadingFavoriteStationId()"
           [isImporting]="favoritesTransfer.isImporting()"
           [transferMessage]="favoritesTransfer.message()"
           [transferFailed]="favoritesTransfer.failed()"
@@ -52,7 +53,7 @@
       [disabled]="isLoading()"
       (click)="playRandomStation()"
     >
-      @if (isLoading()) {
+      @if (isLoading() && loadingFavoriteStationId() === null) {
         Loading...
       } @else {
         Play a Random Station

@@ -26,6 +26,7 @@
                 [station]="favorite"
                 [disabled]="isLoading()"
                 [isSelected]="isSelectedStation(favorite)"
+                [isTuning]="loadingStationId() === stationId(favorite)"
                 (stationSelected)="selectStation($event)"
               />
             </li>

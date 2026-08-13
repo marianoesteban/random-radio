@@ -22,6 +22,7 @@ export class FavoritesMenu {
   readonly selectedStation = input<RadioStation | null>(null);
   readonly isOpen = input.required<boolean>();
   readonly isLoading = input.required<boolean>();
+  readonly loadingStationId = input<string | null>(null);
   readonly isImporting = input(false);
   readonly transferMessage = input('');
   readonly transferFailed = input(false);
