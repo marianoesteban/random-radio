@@ -88,6 +88,22 @@ describe('FavoriteStationItem', () => {
     expect(button.disabled).toBe(true);
   });
 
+  it('should identify the station being tuned without exposing implementation details', () => {
+    const fixture = TestBed.createComponent(FavoriteStationItem);
+    fixture.componentRef.setInput('station', createStation());
+    fixture.componentRef.setInput('disabled', true);
+    fixture.componentRef.setInput('isTuning', true);
+    fixture.detectChanges();
+
+    const button = fixture.nativeElement.querySelector('.favorite-station') as HTMLButtonElement;
+    const indicator = fixture.nativeElement.querySelector('.selected-indicator') as HTMLElement;
+
+    expect(button.getAttribute('aria-label')).toBe('Tuning to Station One');
+    expect(indicator.textContent).toContain('Tuning...');
+    expect(indicator.hasAttribute('role')).toBe(false);
+    expect(button.textContent).not.toContain('refresh');
+  });
+
   it('should distinguish the selected station without disabling it', () => {
     const fixture = TestBed.createComponent(FavoriteStationItem);
     fixture.componentRef.setInput('station', createStation());

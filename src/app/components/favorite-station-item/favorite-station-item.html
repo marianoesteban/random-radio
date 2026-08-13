@@ -8,8 +8,10 @@
   (click)="selectStation()"
   [attr.aria-current]="isSelected() ? 'true' : null"
   [attr.aria-label]="
-    (isSelected() ? 'Play currently selected favorite station ' : 'Play favorite station ') +
-    favorite.name
+    isTuning()
+      ? 'Tuning to ' + favorite.name
+      : (isSelected() ? 'Play currently selected favorite station ' : 'Play favorite station ') +
+        favorite.name
   "
 >
   <span class="favorite-image" aria-hidden="true">
@@ -36,7 +38,9 @@
       <span class="favorite-country">
         <app-country-label [countryCode]="favorite.countryCode"></app-country-label>
       </span>
-      @if (isSelected()) {
+      @if (isTuning()) {
+        <span class="selected-indicator">Tuning...</span>
+      } @else if (isSelected()) {
         <span class="selected-indicator">Selected</span>
       }
     </span>

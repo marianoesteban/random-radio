@@ -6,7 +6,7 @@ import { RadioStation } from './models/radio-station';
 import { NotificationService } from './services/notification-service';
 import { RadioBrowser } from './services/radio-browser';
 import { LastPlayedStationStorage } from './storage/last-played-station-storage';
-import { maximumFavoriteStations } from './stores/favorites-store';
+import { FavoritesStore, maximumFavoriteStations } from './stores/favorites-store';
 
 function createStation(overrides: Partial<RadioStation> = {}): RadioStation {
   return {
@@ -31,6 +31,7 @@ async function flushPromises(): Promise<void> {
 describe('App', () => {
   let radioBrowser: {
     getRandomStation: Mock<() => Promise<RadioStation>>;
+    getStation: Mock<(stationId: string) => Promise<RadioStation>>;
     reportStationClick: Mock<(stationId: string) => Promise<void>>;
   };
   let lastPlayedStationStorage: {
@@ -47,6 +48,16 @@ describe('App', () => {
     localStorage.clear();
     radioBrowser = {
       getRandomStation: vi.fn(),
+      getStation: vi.fn((stationId: string) => {
+        const stored = JSON.parse(localStorage.getItem('random-radio:favorites') ?? 'null') as {
+          stations?: RadioStation[];
+        } | null;
+        const station = stored?.stations?.find(
+          (favorite) => favorite.source.externalId === stationId,
+        );
+
+        return station ? Promise.resolve(station) : Promise.reject(new Error('Station not found'));
+      }),
       reportStationClick: vi.fn(() => Promise.resolve()),
     };
     lastPlayedStationStorage = {
@@ -389,6 +400,149 @@ describe('App', () => {
       expect(radioBrowser.reportStationClick).toHaveBeenCalledWith('favorite-1');
       expect(title.getTitle()).toBe('Random Radio - Saved Station');
       expect(fixture.nativeElement.querySelector('.favorites-panel')).toBeNull();
+    });
+
+    it('should refresh a favorite from the API and persist its current data before playing', async () => {
+      const savedStation = createStation({
+        source: { provider: 'radio-browser', externalId: 'favorite-1' },
+        name: 'Old Station Name',
+        streamUrl: 'https://stream.example.com/old',
+      });
+      const currentStation = createStation({
+        source: { provider: 'radio-browser', externalId: 'favorite-1' },
+        name: 'Current Station Name',
+        streamUrl: 'https://stream.example.com/current',
+      });
+      localStorage.setItem(
+        'random-radio:favorites',
+        JSON.stringify({ version: 1, stations: [savedStation] }),
+      );
+      radioBrowser.getStation.mockResolvedValue(currentStation);
+      const fixture = createFixture();
+
+      (fixture.nativeElement.querySelector('.menu-button') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      (fixture.nativeElement.querySelector('.favorite-station') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      const tuningFavorite = fixture.nativeElement.querySelector(
+        '.favorite-station',
+      ) as HTMLButtonElement;
+      const randomButton = fixture.nativeElement.querySelector(
+        '.primary-action',
+      ) as HTMLButtonElement;
+
+      expect(tuningFavorite.disabled).toBe(true);
+      expect(tuningFavorite.textContent).toContain('Tuning...');
+      expect(tuningFavorite.getAttribute('aria-label')).toBe('Tuning to Old Station Name');
+      expect(randomButton.disabled).toBe(true);
+      expect(randomButton.textContent).toContain('Play a Random Station');
+
+      await settlePlayback(fixture);
+
+      const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
+      const stored = JSON.parse(localStorage.getItem('random-radio:favorites') ?? 'null') as {
+        stations: RadioStation[];
+      };
+
+      expect(radioBrowser.getStation).toHaveBeenCalledWith('favorite-1');
+      expect(stored.stations).toEqual([currentStation]);
+      expect(audio.src).toBe('https://stream.example.com/current');
+      expect(title.getTitle()).toBe('Random Radio - Current Station Name');
+    });
+
+    it('should play stored favorite data without using Radio Browser for another provider', async () => {
+      const station = createStation({
+        source: { provider: 'other-api', externalId: 'favorite-1' },
+        name: 'Other Provider Station',
+      });
+      localStorage.setItem(
+        'random-radio:favorites',
+        JSON.stringify({ version: 1, stations: [station] }),
+      );
+      const fixture = createFixture();
+
+      (fixture.nativeElement.querySelector('.menu-button') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      (fixture.nativeElement.querySelector('.favorite-station') as HTMLButtonElement).click();
+      await settlePlayback(fixture);
+
+      const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
+
+      expect(radioBrowser.getStation).not.toHaveBeenCalled();
+      expect(audio.src).toBe('https://stream.example.com/live');
+      expect(playAudio).toHaveBeenCalledOnce();
+      expect(radioBrowser.reportStationClick).not.toHaveBeenCalled();
+      expect(title.getTitle()).toBe('Random Radio - Other Provider Station');
+    });
+
+    it('should keep the favorites menu open when current station data cannot be loaded', async () => {
+      const station = createStation({
+        source: { provider: 'radio-browser', externalId: 'favorite-1' },
+      });
+      localStorage.setItem(
+        'random-radio:favorites',
+        JSON.stringify({ version: 1, stations: [station] }),
+      );
+      radioBrowser.getStation.mockRejectedValue(new Error('offline'));
+      const fixture = createFixture();
+
+      (fixture.nativeElement.querySelector('.menu-button') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      (fixture.nativeElement.querySelector('.favorite-station') as HTMLButtonElement).click();
+      await settlePlayback(fixture);
+
+      expect(fixture.nativeElement.querySelector('.favorites-panel')).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('.status')?.textContent).toContain(
+        'The favorite station could not be loaded. Try again.',
+      );
+      expect(playAudio).not.toHaveBeenCalled();
+    });
+
+    it('should play without reporting when refreshed favorite data cannot be persisted', async () => {
+      const station = createStation({
+        source: { provider: 'radio-browser', externalId: 'favorite-1' },
+      });
+      localStorage.setItem(
+        'random-radio:favorites',
+        JSON.stringify({ version: 1, stations: [station] }),
+      );
+      radioBrowser.getStation.mockResolvedValue(createStation({ ...station, name: 'Updated' }));
+      const fixture = createFixture();
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new Error('Storage unavailable');
+      });
+
+      (fixture.nativeElement.querySelector('.menu-button') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      (fixture.nativeElement.querySelector('.favorite-station') as HTMLButtonElement).click();
+      await settlePlayback(fixture);
+
+      expect(fixture.nativeElement.querySelector('.favorite-notification')).toBeNull();
+      expect(playAudio).toHaveBeenCalledOnce();
+    });
+
+    it('should not report a persistence error when a favorite is removed while loading', async () => {
+      const station = createStation({
+        source: { provider: 'radio-browser', externalId: 'favorite-1' },
+      });
+      localStorage.setItem(
+        'random-radio:favorites',
+        JSON.stringify({ version: 1, stations: [station] }),
+      );
+      radioBrowser.getStation.mockResolvedValue(station);
+      const fixture = createFixture();
+      const notifications = TestBed.inject(NotificationService);
+
+      notifications.show('Existing notification.');
+      (fixture.nativeElement.querySelector('.menu-button') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      (fixture.nativeElement.querySelector('.favorite-station') as HTMLButtonElement).click();
+      TestBed.inject(FavoritesStore).toggle(station);
+      await settlePlayback(fixture);
+
+      expect(fixture.nativeElement.querySelector('.favorite-notification')).toBeNull();
+      expect(playAudio).toHaveBeenCalledOnce();
     });
 
     it('should not replace a favorite station after playback fails', async () => {

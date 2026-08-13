@@ -5,13 +5,18 @@ import {
   RadioStationPlaybackFailure,
   RadioStationPlayer,
 } from './components/radio-station-player/radio-station-player';
-import { RadioStation, RadioStationSource } from './models/radio-station';
+import { RadioStation, RadioStationSource, radioStationId } from './models/radio-station';
 import { FavoritesTransfer } from './services/favorites-transfer';
 import { NotificationService } from './services/notification-service';
 import { RadioBrowser } from './services/radio-browser';
 import { ThemeService } from './services/theme';
 import { LastPlayedStationStorage } from './storage/last-played-station-storage';
 import { FavoritesStore, maximumFavoriteStations } from './stores/favorites-store';
+
+type StationLoading =
+  | { readonly kind: 'random' }
+  | { readonly kind: 'favorite'; readonly stationId: string }
+  | null;
 
 @Component({
   selector: 'app-root',
@@ -36,7 +41,13 @@ export class App {
 
   protected readonly station = signal<RadioStation | null>(this.lastPlayedStationStorage.load());
   protected readonly shouldAutoplayStation = signal(false);
-  protected readonly isLoading = signal(false);
+  private readonly stationLoading = signal<StationLoading>(null);
+  protected readonly isLoading = computed(() => this.stationLoading() !== null);
+  protected readonly loadingFavoriteStationId = computed(() => {
+    const loading = this.stationLoading();
+
+    return loading?.kind === 'favorite' ? loading.stationId : null;
+  });
   protected readonly stationError = signal('');
   protected readonly isFavoritesMenuOpen = signal(false);
   protected readonly notifications = inject(NotificationService);
@@ -94,7 +105,8 @@ export class App {
   }
 
   private async loadRandomStation(isRetry: boolean): Promise<void> {
-    this.isLoading.set(true);
+    const loading = { kind: 'random' } as const;
+    this.stationLoading.set(loading);
     this.stationError.set(isRetry ? 'That station did not respond. Trying another...' : '');
 
     try {
@@ -109,7 +121,9 @@ export class App {
           : 'The station could not be played. Try another one.',
       );
     } finally {
-      this.isLoading.set(false);
+      if (this.stationLoading() === loading) {
+        this.stationLoading.set(null);
+      }
     }
   }
 
@@ -140,12 +154,33 @@ export class App {
     );
   }
 
-  protected playFavoriteStation(station: RadioStation): void {
+  protected async playFavoriteStation(station: RadioStation): Promise<void> {
     this.currentSelection = 'other';
     this.stationError.set('');
-    this.selectStation(station);
-    this.favoritesTransfer.clearMessage();
-    this.isFavoritesMenuOpen.set(false);
+    const loading = { kind: 'favorite', stationId: radioStationId(station) } as const;
+    this.stationLoading.set(loading);
+
+    try {
+      const isRadioBrowserStation = station.source.provider === RadioBrowser.provider;
+      const currentStation = isRadioBrowserStation
+        ? await this.radioBrowser.getStation(station.source.externalId)
+        : station;
+
+      if (isRadioBrowserStation) {
+        void this.favoritesStore.update(currentStation);
+      }
+      this.notifications.clear();
+
+      this.selectStation(currentStation);
+      this.favoritesTransfer.clearMessage();
+      this.isFavoritesMenuOpen.set(false);
+    } catch {
+      this.stationError.set('The favorite station could not be loaded. Try again.');
+    } finally {
+      if (this.stationLoading() === loading) {
+        this.stationLoading.set(null);
+      }
+    }
   }
 
   protected handlePlaybackStarted(source: RadioStationSource): void {

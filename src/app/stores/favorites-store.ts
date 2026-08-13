@@ -16,6 +16,10 @@ export type FavoriteToggleResult =
   | { readonly success: true; readonly action: 'added' | 'removed' }
   | { readonly success: false; readonly reason: 'limit' | 'persistence' };
 
+export type FavoriteUpdateResult =
+  | { readonly success: true }
+  | { readonly success: false; readonly reason: 'not-found' | 'persistence' };
+
 @Service()
 export class FavoritesStore {
   private readonly storageKey = 'random-radio:favorites';
@@ -57,6 +61,26 @@ export class FavoritesStore {
     }
 
     return { success: false, reason: 'persistence' };
+  }
+
+  update(station: RadioStation): FavoriteUpdateResult {
+    const stationId = radioStationId(station);
+    const currentFavorites = this.favoriteStations();
+
+    if (!currentFavorites.some((favorite) => radioStationId(favorite) === stationId)) {
+      return { success: false, reason: 'not-found' };
+    }
+
+    const favorites = currentFavorites.map((favorite) =>
+      radioStationId(favorite) === stationId ? station : favorite,
+    );
+
+    if (!this.save(favorites)) {
+      return { success: false, reason: 'persistence' };
+    }
+
+    this.favoriteStations.set(favorites);
+    return { success: true };
   }
 
   exportFavorites(): string {

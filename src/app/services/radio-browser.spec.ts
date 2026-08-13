@@ -190,6 +190,30 @@ describe('RadioBrowser', () => {
     });
   });
 
+  it('should fetch the current station data by id', async () => {
+    const stationPromise = service.getStation('station/1');
+
+    const request = http.expectOne(`${baseUrl}/stations/byuuid/station%2F1`);
+    expect(request.request.method).toBe('GET');
+    request.flush([createApiStation({ name: 'Updated Station' })]);
+
+    await expect(stationPromise).resolves.toMatchObject({
+      source: { provider: 'radio-browser', externalId: 'station-1' },
+      name: 'Updated Station',
+      streamUrl: 'https://stream.example.com/live',
+    });
+  });
+
+  it('should reject when a station fetched by id is missing or unplayable', async () => {
+    const stationPromise = service.getStation('station-1');
+
+    http
+      .expectOne(`${baseUrl}/stations/byuuid/station-1`)
+      .flush([createApiStation({ url: '', url_resolved: '' })]);
+
+    await expect(stationPromise).rejects.toThrow('The station was not found or is not playable.');
+  });
+
   it('should report station clicks to Radio Browser', async () => {
     const clickPromise = service.reportStationClick('station-1');
 
