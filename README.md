@@ -1,59 +1,70 @@
 # Random Radio
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.0.3.
+Random Radio is a browser-based player for discovering live radio stations from around the world. Press play to tune in to a random station, save the ones you like, and return to your last-played station later.
 
-## Development server
+![Random Radio player](docs/screenshots/random-radio.png)
 
-To start a local development server, run:
+Station data and stream URLs are provided by the [Radio Browser API](https://www.radio-browser.info/).
 
-```bash
-ng serve
-```
+## Features
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+- Random live-radio discovery with automatic retries for unavailable streams
+- Playback, volume, and mute controls
+- Station details, including country and homepage links when available
+- Favorites stored locally in the browser (up to 500 stations)
+- Favorites import and export as JSON
+- Last-played station and audio preferences remembered between visits
+- Light and dark themes, with the initial theme based on the system preference
+- Responsive, keyboard-accessible interface
 
-## Code scaffolding
+## Getting started
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+### Prerequisites
 
-```bash
-ng generate component component-name
-```
+- [Node.js](https://nodejs.org/) compatible with Angular 22
+- npm 11 (the project is configured for npm 11.16.0)
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
+Install the dependencies and start the development server:
 
 ```bash
-ng build
+npm install
+npm start
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+Open [http://localhost:4200](http://localhost:4200). The development server reloads the app when source files change.
 
-## Running unit tests
+An internet connection is required to retrieve station data and play live streams. Some stations may be temporarily offline or may reject playback because of browser or stream-server restrictions.
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+## Available commands
+
+| Command | Description |
+| --- | --- |
+| `npm start` | Start the local development server |
+| `npm test` | Run the Vitest unit test suite |
+| `npm run build` | Create an optimized production build in `dist/` |
+| `npm run watch` | Rebuild continuously using the development configuration |
+| `npm run ng -- <command>` | Run an Angular CLI command |
+
+## How favorites are stored
+
+Favorites, the last-played station, audio preferences, and the selected theme are saved in browser `localStorage`. No account or backend is required. Clearing site data removes these settings, so export favorites from the favorites menu before clearing browser storage if you want a backup.
+
+Importing a favorites file merges new stations into the existing list and ignores duplicates. The app accepts only JSON files in its versioned Random Radio export format, with a maximum file size of 5 MB.
+
+## Technology
+
+- Angular 22 with standalone components and signals
+- TypeScript 6
+- RxJS 7
+- Vitest 4
+- Radio Browser API
+
+## Production build
+
+Create a deployable build with:
 
 ```bash
-ng test
+npm run build
 ```
 
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+The generated static files are written to `dist/random-radio/browser/` and can be served by any static hosting provider.
