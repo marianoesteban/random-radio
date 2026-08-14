@@ -8,7 +8,7 @@ import {
 import { RadioStation, RadioStationSource, radioStationId } from './models/radio-station';
 import { FavoritesTransfer } from './services/favorites-transfer';
 import { NotificationService } from './services/notification-service';
-import { RadioBrowser } from './services/radio-browser';
+import { RadioStationService } from './services/radio-station-service';
 import { ThemeService } from './services/theme';
 import { LastPlayedStationStorage } from './storage/last-played-station-storage';
 import { FavoritesStore, maximumFavoriteStations } from './stores/favorites-store';
@@ -16,6 +16,7 @@ import { FavoritesStore, maximumFavoriteStations } from './stores/favorites-stor
 type StationLoading =
   | { readonly kind: 'random' }
   | { readonly kind: 'favorite'; readonly stationId: string }
+  | { readonly kind: 'restored' }
   | null;
 
 @Component({
@@ -30,7 +31,7 @@ type StationLoading =
 export class App {
   private static readonly maxRandomPlaybackAttempts = 3;
 
-  private readonly radioBrowser = inject(RadioBrowser);
+  private readonly stationService = inject(RadioStationService);
   private readonly favoritesStore = inject(FavoritesStore);
   private readonly lastPlayedStationStorage = inject(LastPlayedStationStorage);
   private readonly title = inject(Title);
@@ -42,7 +43,12 @@ export class App {
   protected readonly station = signal<RadioStation | null>(this.lastPlayedStationStorage.load());
   protected readonly shouldAutoplayStation = signal(false);
   private readonly stationLoading = signal<StationLoading>(null);
-  protected readonly isLoading = computed(() => this.stationLoading() !== null);
+  protected readonly isSelectionLoading = computed(() => {
+    const loading = this.stationLoading();
+
+    return loading !== null && loading.kind !== 'restored';
+  });
+  protected readonly isStationLoading = computed(() => this.stationLoading() !== null);
   protected readonly loadingFavoriteStationId = computed(() => {
     const loading = this.stationLoading();
 
@@ -65,6 +71,7 @@ export class App {
 
     if (restoredStation) {
       this.updatePageTitle(restoredStation.name);
+      void this.refreshRestoredStation(restoredStation);
     }
   }
 
@@ -81,7 +88,7 @@ export class App {
       !station ||
       !this.isSourceForCurrentStation(failure.source) ||
       this.currentSelection !== 'random' ||
-      this.isLoading()
+      this.isSelectionLoading()
     ) {
       return;
     }
@@ -110,7 +117,7 @@ export class App {
     this.stationError.set(isRetry ? 'That station did not respond. Trying another...' : '');
 
     try {
-      const station = await this.radioBrowser.getRandomStation();
+      const station = await this.stationService.getRandomStation();
 
       this.randomPlaybackAttempts += 1;
       this.selectStation(station);
@@ -120,6 +127,37 @@ export class App {
           ? 'Could not find a playable station. Try again.'
           : 'The station could not be played. Try another one.',
       );
+    } finally {
+      if (this.stationLoading() === loading) {
+        this.stationLoading.set(null);
+      }
+    }
+  }
+
+  private async refreshRestoredStation(station: RadioStation): Promise<void> {
+    if (!this.stationService.canRefresh(station.source)) {
+      return;
+    }
+
+    const loading = { kind: 'restored' } as const;
+    this.stationLoading.set(loading);
+
+    try {
+      const currentStation = await this.stationService.refreshStation(station);
+
+      if (this.stationLoading() !== loading) {
+        return;
+      }
+
+      this.station.set({ ...currentStation });
+      this.updatePageTitle(currentStation.name);
+      this.lastPlayedStationStorage.save(currentStation);
+
+      if (this.favoritesStore.isFavorite(station)) {
+        void this.favoritesStore.update(currentStation);
+      }
+    } catch {
+      // Keep the stored station available when current data cannot be loaded.
     } finally {
       if (this.stationLoading() === loading) {
         this.stationLoading.set(null);
@@ -161,12 +199,10 @@ export class App {
     this.stationLoading.set(loading);
 
     try {
-      const isRadioBrowserStation = station.source.provider === RadioBrowser.provider;
-      const currentStation = isRadioBrowserStation
-        ? await this.radioBrowser.getStation(station.source.externalId)
-        : station;
+      const canRefresh = this.stationService.canRefresh(station.source);
+      const currentStation = await this.stationService.refreshStation(station);
 
-      if (isRadioBrowserStation) {
+      if (canRefresh) {
         void this.favoritesStore.update(currentStation);
       }
       this.notifications.clear();
@@ -196,11 +232,7 @@ export class App {
       this.stationError.set('');
     }
 
-    if (source.provider !== RadioBrowser.provider) {
-      return;
-    }
-
-    this.radioBrowser.reportStationClick(source.externalId).catch(() => undefined);
+    this.stationService.reportPlayback(source).catch(() => undefined);
   }
 
   private updatePageTitle(stationName: string): void {
