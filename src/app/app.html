@@ -64,7 +64,7 @@
       [station]="station()"
       [autoplay]="shouldAutoplayStation()"
       [isFavorite]="isCurrentStationFavorite()"
-      [isLoading]="isLoading()"
+      [isLoading]="isPlayerLoading()"
       [error]="stationError()"
       (favoriteToggled)="toggleFavoriteStation($event)"
       (playbackStarted)="handlePlaybackStarted($event)"
