@@ -32,7 +32,7 @@
           [favorites]="favoriteStations()"
           [selectedStation]="station()"
           [isOpen]="isFavoritesMenuOpen()"
-          [isLoading]="isLoading()"
+          [isLoading]="isSelectionLoading()"
           [loadingStationId]="loadingFavoriteStationId()"
           [isImporting]="favoritesTransfer.isImporting()"
           [transferMessage]="favoritesTransfer.message()"
@@ -50,10 +50,10 @@
     <button
       class="primary-action"
       type="button"
-      [disabled]="isLoading()"
+      [disabled]="isSelectionLoading()"
       (click)="playRandomStation()"
     >
-      @if (isLoading() && loadingFavoriteStationId() === null) {
+      @if (isSelectionLoading() && loadingFavoriteStationId() === null) {
         Loading...
       } @else {
         Play a Random Station
@@ -64,7 +64,7 @@
       [station]="station()"
       [autoplay]="shouldAutoplayStation()"
       [isFavorite]="isCurrentStationFavorite()"
-      [isLoading]="isPlayerLoading()"
+      [isLoading]="isStationLoading()"
       [error]="stationError()"
       (favoriteToggled)="toggleFavoriteStation($event)"
       (playbackStarted)="handlePlaybackStarted($event)"

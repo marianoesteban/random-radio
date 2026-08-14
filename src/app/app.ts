@@ -43,12 +43,12 @@ export class App {
   protected readonly station = signal<RadioStation | null>(this.lastPlayedStationStorage.load());
   protected readonly shouldAutoplayStation = signal(false);
   private readonly stationLoading = signal<StationLoading>(null);
-  protected readonly isLoading = computed(() => {
+  protected readonly isSelectionLoading = computed(() => {
     const loading = this.stationLoading();
 
     return loading !== null && loading.kind !== 'restored';
   });
-  protected readonly isPlayerLoading = computed(() => this.stationLoading() !== null);
+  protected readonly isStationLoading = computed(() => this.stationLoading() !== null);
   protected readonly loadingFavoriteStationId = computed(() => {
     const loading = this.stationLoading();
 
@@ -88,7 +88,7 @@ export class App {
       !station ||
       !this.isSourceForCurrentStation(failure.source) ||
       this.currentSelection !== 'random' ||
-      this.isLoading()
+      this.isSelectionLoading()
     ) {
       return;
     }
