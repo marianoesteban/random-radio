@@ -1,7 +1,9 @@
 import { Component, computed, input } from '@angular/core';
+import { TitleOnOverflow } from '../../directives/title-on-overflow';
 
 @Component({
   selector: 'app-country-label',
+  imports: [TitleOnOverflow],
   templateUrl: './country-label.html',
   styleUrl: './country-label.css',
 })
