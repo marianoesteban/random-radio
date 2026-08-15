@@ -40,4 +40,22 @@ describe('CountryLabel', () => {
     expect(compiled.querySelector('.country-flag')).toBeNull();
     expect(compiled.textContent?.trim()).toBe('Unknown');
   });
+
+  it('should show the full country name when the label overflows', () => {
+    const fixture = TestBed.createComponent(CountryLabel);
+    fixture.componentRef.setInput('countryCode', 'AR');
+    fixture.detectChanges();
+
+    const label = fixture.nativeElement.querySelector('.country-label') as HTMLElement;
+
+    Object.defineProperties(label, {
+      clientWidth: { configurable: true, get: () => 80 },
+      scrollWidth: { configurable: true, get: () => 160 },
+    });
+
+    fixture.componentRef.setInput('countryCode', 'MM');
+    fixture.detectChanges();
+
+    expect(label.title).toBe('Myanmar (Burma)');
+  });
 });

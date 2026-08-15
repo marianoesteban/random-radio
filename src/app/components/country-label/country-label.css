@@ -1,5 +1,14 @@
 :host {
-  display: inline;
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: bottom;
+}
+
+.country-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .country-flag {
