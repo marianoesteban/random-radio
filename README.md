@@ -68,3 +68,9 @@ npm run build
 ```
 
 The generated static files are written to `dist/random-radio/browser/` and can be served by any static hosting provider.
+
+## License
+
+Copyright (C) 2026 Mariano Esteban.
+
+Random Radio is free software licensed under the [GNU General Public License, version 3 or later](LICENSE). If you distribute a modified version, you must make its corresponding source code available under the same license terms.
