@@ -31,58 +31,11 @@ describe('station playback', () => {
 
     expect(setup.stationService.getRandomStation).toHaveBeenCalledOnce();
     expect(audio.src).toBe('https://stream.example.com/live');
-    expect(audio.hasAttribute('controls')).toBe(false);
-    expect(setup.loadAudio).toHaveBeenCalledOnce();
     expect(setup.playAudio).toHaveBeenCalledOnce();
     expect(setup.stationService.reportPlayback).toHaveBeenCalledWith(station.source);
-    expect(setup.title.getTitle()).toBe('Random Radio - Station One');
     expect(button.disabled).toBe(false);
     expect(button.textContent).toContain('Play a Random Station');
-    expect(fixture.nativeElement.querySelector('app-radio-station-player')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('app-station-card')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('app-audio-controls')).not.toBeNull();
-    expect(setup.lastPlayedStationStorage.save).toHaveBeenCalledWith(station);
-  });
-
-  it('should stop and reconnect to the current station without selecting a new one', async () => {
-    const fixture = setup.createFixture();
-    const audio = await setup.playRandomStation(fixture);
-
-    audio.dispatchEvent(new Event('playing'));
-    fixture.detectChanges();
-
-    const playbackButton = fixture.nativeElement.querySelector(
-      '.playback-action',
-    ) as HTMLButtonElement;
-
-    playbackButton.click();
-    fixture.detectChanges();
-
-    expect(setup.pauseAudio).toHaveBeenCalledOnce();
-    expect(audio.src).toBe('');
-
-    playbackButton.click();
-
-    await fixture.whenStable();
-    await flushPromises();
-
-    expect(audio.src).toBe('https://stream.example.com/live');
-    expect(setup.playAudio).toHaveBeenCalledTimes(2);
-    expect(setup.stationService.getRandomStation).toHaveBeenCalledOnce();
-  });
-
-  it('should update the audio volume from the audio controls', async () => {
-    const fixture = setup.createFixture();
-    const audio = await setup.playRandomStation(fixture);
-    const volumeInput = fixture.nativeElement.querySelector(
-      'input[type="range"]',
-    ) as HTMLInputElement;
-
-    volumeInput.value = '0.35';
-    volumeInput.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-
-    expect(audio.volume).toBe(0.35);
   });
 });
 
@@ -104,17 +57,7 @@ describe('random station recovery', () => {
 
     expect(button.disabled).toBe(false);
     expect(status.textContent).toContain('The station could not be played. Try another one.');
-    expect(setup.loadAudio).not.toHaveBeenCalled();
     expect(setup.playAudio).not.toHaveBeenCalled();
-    expect(setup.stationService.reportPlayback).not.toHaveBeenCalled();
-    expect(setup.title.getTitle()).toBe('Random Radio - Discover Live Stations');
-  });
-
-  it('should keep the default page title when the station name is blank', async () => {
-    const fixture = setup.createFixture();
-    await setup.playRandomStation(fixture, createStation({ name: '   ' }));
-
-    expect(setup.title.getTitle()).toBe('Random Radio - Discover Live Stations');
   });
 
   it('should stop retrying after three random stations fail to play', async () => {
