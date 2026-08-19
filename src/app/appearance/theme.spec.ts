@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { type Mock, vi } from 'vitest';
 import { ThemeService } from './theme';
+import { Theme, ThemeStorage } from './theme-storage';
 
 function setPreferredColorScheme(isDark: boolean): void {
   vi.stubGlobal(
@@ -19,9 +20,20 @@ function setPreferredColorScheme(isDark: boolean): void {
 }
 
 describe('ThemeService', () => {
+  let storage: {
+    load: Mock<() => Theme | null>;
+    save: Mock<(theme: Theme) => void>;
+  };
+
   beforeEach(() => {
-    localStorage.clear();
+    storage = {
+      load: vi.fn(() => null),
+      save: vi.fn(),
+    };
     setPreferredColorScheme(false);
+    TestBed.configureTestingModule({
+      providers: [{ provide: ThemeStorage, useValue: storage }],
+    });
   });
 
   afterEach(() => {
@@ -37,7 +49,7 @@ describe('ThemeService', () => {
     ['light', false],
     ['dark', true],
   ] as const)('should restore the saved %s theme', (theme, expectedIsDark) => {
-    localStorage.setItem('random-radio:theme', theme);
+    storage.load.mockReturnValue(theme);
 
     expect(createService().isDark()).toBe(expectedIsDark);
   });
@@ -49,43 +61,17 @@ describe('ThemeService', () => {
     expect(matchMedia).toHaveBeenCalledWith('(prefers-color-scheme: dark)');
   });
 
-  it('should ignore an invalid saved theme and use the preferred color scheme', () => {
-    localStorage.setItem('random-radio:theme', 'sepia');
-    setPreferredColorScheme(true);
-
-    expect(createService().isDark()).toBe(true);
-  });
-
   it('should persist theme changes', () => {
     const service = createService();
 
     service.toggle();
 
     expect(service.isDark()).toBe(true);
-    expect(localStorage.getItem('random-radio:theme')).toBe('dark');
+    expect(storage.save).toHaveBeenLastCalledWith('dark');
 
     service.toggle();
 
     expect(service.isDark()).toBe(false);
-    expect(localStorage.getItem('random-radio:theme')).toBe('light');
-  });
-
-  it('should use the preferred color scheme when storage cannot be read', () => {
-    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
-      throw new DOMException('Storage is unavailable');
-    });
-    setPreferredColorScheme(true);
-
-    expect(createService().isDark()).toBe(true);
-  });
-
-  it('should still apply a theme change when storage cannot be written', () => {
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
-      throw new DOMException('Storage is unavailable');
-    });
-    const service = createService();
-
-    expect(() => service.toggle()).not.toThrow();
-    expect(service.isDark()).toBe(true);
+    expect(storage.save).toHaveBeenLastCalledWith('light');
   });
 });

@@ -1,12 +1,10 @@
 import { DOCUMENT, inject, Service, signal } from '@angular/core';
-
-const THEME_STORAGE_KEY = 'random-radio:theme';
-
-type Theme = 'light' | 'dark';
+import { Theme, ThemeStorage } from './theme-storage';
 
 @Service()
 export class ThemeService {
   private readonly document = inject(DOCUMENT);
+  private readonly storage = inject(ThemeStorage);
 
   readonly isDark = signal(this.loadTheme() === 'dark');
 
@@ -14,30 +12,18 @@ export class ThemeService {
     const theme: Theme = this.isDark() ? 'light' : 'dark';
 
     this.isDark.set(theme === 'dark');
-    this.saveTheme(theme);
+    this.storage.save(theme);
   }
 
   private loadTheme(): Theme {
-    const view = this.document.defaultView;
+    const savedTheme = this.storage.load();
 
-    try {
-      const savedTheme = view?.localStorage.getItem(THEME_STORAGE_KEY);
-
-      if (savedTheme === 'light' || savedTheme === 'dark') {
-        return savedTheme;
-      }
-    } catch {
-      // Storage can be unavailable in privacy-restricted browsing contexts.
+    if (savedTheme) {
+      return savedTheme;
     }
 
-    return view?.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
-
-  private saveTheme(theme: Theme): void {
-    try {
-      this.document.defaultView?.localStorage.setItem(THEME_STORAGE_KEY, theme);
-    } catch {
-      // The selected theme still applies for the current session.
-    }
+    return this.document.defaultView?.matchMedia?.('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
   }
 }
