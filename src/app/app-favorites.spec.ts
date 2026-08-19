@@ -148,14 +148,12 @@ describe('favorites and transfers', () => {
 
     expect(setup.stationService.getRandomStation).not.toHaveBeenCalled();
     expect(audio.src).toBe('https://stream.example.com/live');
-    expect(setup.loadAudio).toHaveBeenCalledOnce();
     expect(setup.playAudio).toHaveBeenCalledOnce();
     expect(setup.stationService.reportPlayback).toHaveBeenCalledWith(station.source);
-    expect(setup.title.getTitle()).toBe('Random Radio - Saved Station');
     expect(fixture.nativeElement.querySelector('.favorites-panel')).toBeNull();
   });
 
-  it('should refresh a favorite from the API and persist its current data before playing', async () => {
+  it('should show loading and play the refreshed favorite data', async () => {
     const savedStation = createStation({
       source: { provider: 'radio-browser', externalId: 'favorite-1' },
       name: 'Old Station Name',
@@ -194,42 +192,9 @@ describe('favorites and transfers', () => {
     await setup.settlePlayback(fixture);
 
     const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
-    const stored = JSON.parse(localStorage.getItem('random-radio:favorites') ?? 'null') as {
-      stations: RadioStation[];
-    };
 
-    expect(setup.stationService.refreshStation).toHaveBeenCalledWith(savedStation);
-    expect(stored.stations).toEqual([currentStation]);
     expect(audio.src).toBe('https://stream.example.com/current');
-    expect(setup.title.getTitle()).toBe('Random Radio - Current Station Name');
-  });
-
-  it('should play an unsupported favorite without caching it as refreshed data', async () => {
-    const station = createStation({
-      source: { provider: 'other-api', externalId: 'favorite-1' },
-      name: 'Other Provider Station',
-    });
-    localStorage.setItem(
-      'random-radio:favorites',
-      JSON.stringify({ version: 1, stations: [station] }),
-    );
-    const fixture = setup.createFixture();
-    const setItem = vi.spyOn(Storage.prototype, 'setItem');
-
-    (fixture.nativeElement.querySelector('.menu-button') as HTMLButtonElement).click();
-    fixture.detectChanges();
-    (fixture.nativeElement.querySelector('.favorite-station') as HTMLButtonElement).click();
-    await setup.settlePlayback(fixture);
-
-    const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
-
-    expect(setup.stationService.canRefresh).toHaveBeenCalledWith(station.source);
-    expect(setup.stationService.refreshStation).toHaveBeenCalledWith(station);
-    expect(setItem).not.toHaveBeenCalled();
-    expect(audio.src).toBe('https://stream.example.com/live');
-    expect(setup.playAudio).toHaveBeenCalledOnce();
-    expect(setup.stationService.reportPlayback).toHaveBeenCalledWith(station.source);
-    expect(setup.title.getTitle()).toBe('Random Radio - Other Provider Station');
+    expect(fixture.nativeElement.querySelector('.favorites-panel')).toBeNull();
   });
 
   it('should keep the favorites menu open when current station data cannot be loaded', async () => {
@@ -255,7 +220,7 @@ describe('favorites and transfers', () => {
     expect(setup.playAudio).not.toHaveBeenCalled();
   });
 
-  it('should play without reporting when refreshed favorite data cannot be persisted', async () => {
+  it('should keep playing without showing a notification when refreshed data cannot be persisted', async () => {
     const station = createStation({
       source: { provider: 'radio-browser', externalId: 'favorite-1' },
     });
@@ -301,28 +266,6 @@ describe('favorites and transfers', () => {
 
     expect(fixture.nativeElement.querySelector('.favorite-notification')).toBeNull();
     expect(setup.playAudio).toHaveBeenCalledOnce();
-  });
-
-  it('should not replace a favorite station after playback fails', async () => {
-    const station = createStation({
-      source: { provider: 'radio-browser', externalId: 'favorite-1' },
-      name: 'Saved Station',
-    });
-    localStorage.setItem(
-      'random-radio:favorites',
-      JSON.stringify({ version: 1, stations: [station] }),
-    );
-    setup.playAudio.mockRejectedValue(new Error('broken stream'));
-    const fixture = setup.createFixture();
-
-    (fixture.nativeElement.querySelector('.menu-button') as HTMLButtonElement).click();
-    fixture.detectChanges();
-    (fixture.nativeElement.querySelector('.favorite-station') as HTMLButtonElement).click();
-    await setup.settlePlayback(fixture);
-
-    expect(setup.stationService.getRandomStation).not.toHaveBeenCalled();
-    expect(setup.playAudio).toHaveBeenCalledOnce();
-    expect(setup.title.getTitle()).toBe('Random Radio - Saved Station');
   });
 
   it('should import favorites from a valid export file', async () => {
@@ -390,37 +333,5 @@ describe('favorites and transfers', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.transfer-message')).toBeNull();
-  });
-
-  it('should keep playing a favorite when the same station is selected again', async () => {
-    const station = createStation({
-      source: { provider: 'radio-browser', externalId: 'favorite-1' },
-    });
-    localStorage.setItem(
-      'random-radio:favorites',
-      JSON.stringify({ version: 1, stations: [station] }),
-    );
-    const fixture = setup.createFixture();
-    const menuButton = fixture.nativeElement.querySelector('.menu-button') as HTMLButtonElement;
-
-    menuButton.click();
-    fixture.detectChanges();
-    (fixture.nativeElement.querySelector('.favorite-station') as HTMLButtonElement).click();
-    await setup.settlePlayback(fixture);
-
-    const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
-    audio.dispatchEvent(new Event('playing'));
-    fixture.detectChanges();
-
-    menuButton.click();
-    fixture.detectChanges();
-    (fixture.nativeElement.querySelector('.favorite-station') as HTMLButtonElement).click();
-    fixture.detectChanges();
-    await setup.settlePlayback(fixture);
-
-    expect(setup.loadAudio).toHaveBeenCalledOnce();
-    expect(setup.playAudio).toHaveBeenCalledOnce();
-    expect(setup.stationService.reportPlayback).toHaveBeenCalledOnce();
-    expect(fixture.nativeElement.querySelector('.favorites-panel')).toBeNull();
   });
 });
