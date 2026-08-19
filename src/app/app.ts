@@ -1,15 +1,15 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { FavoritesMenu } from './components/favorites-menu/favorites-menu';
+import { FavoritesMenu } from './favorites/favorites-menu/favorites-menu';
 import {
   RadioStationPlaybackFailure,
   RadioStationPlayer,
-} from './components/radio-station-player/radio-station-player';
-import { RadioStation, RadioStationSource } from './models/radio-station';
-import { FavoritesTransfer } from './services/favorites-transfer';
-import { NotificationService } from './services/notification-service';
-import { ThemeService } from './services/theme';
-import { FavoritesStore, maximumFavoriteStations } from './stores/favorites-store';
-import { RadioSessionStore } from './stores/radio-session-store';
+} from './radio/radio-station-player/radio-station-player';
+import { RadioStation, RadioStationSource } from './radio/radio-station';
+import { FavoritesTransfer } from './favorites/favorites-transfer';
+import { NotificationService } from './notifications/notification-service';
+import { ThemeService } from './appearance/theme';
+import { FavoritesStore, maximumFavoriteStations } from './favorites/favorites-store';
+import { RadioSessionStore } from './radio/radio-session-store';
 
 @Component({
   selector: 'app-root',

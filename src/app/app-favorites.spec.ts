@@ -1,9 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
 import { AppTestSetup, createStation, flushPromises } from './testing/app-test-setup';
-import { RadioStation } from './models/radio-station';
-import { NotificationService } from './services/notification-service';
-import { FavoritesStore, maximumFavoriteStations } from './stores/favorites-store';
+import { FavoritesStore, maximumFavoriteStations } from './favorites/favorites-store';
+import { NotificationService } from './notifications/notification-service';
+import { RadioStation } from './radio/radio-station';
 
 let setup: AppTestSetup;
 
