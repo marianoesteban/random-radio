@@ -1,10 +1,6 @@
-import { Service, signal } from '@angular/core';
-import { parseRadioStation, RadioStation, radioStationId } from '../radio/radio-station';
-
-interface StoredFavorites {
-  readonly version: 1;
-  readonly stations: RadioStation[];
-}
+import { inject, Service, signal } from '@angular/core';
+import { RadioStation, radioStationId } from '../radio/radio-station';
+import { FavoritesStorage } from './favorites-storage';
 
 export const maximumFavoriteStations = 500;
 
@@ -22,8 +18,10 @@ export type FavoriteUpdateResult =
 
 @Service()
 export class FavoritesStore {
-  private readonly storageKey = 'random-radio:favorites';
-  private readonly favoriteStations = signal<RadioStation[]>(this.load());
+  private readonly storage = inject(FavoritesStorage);
+  private readonly favoriteStations = signal<RadioStation[]>(
+    this.storage.load().slice(0, maximumFavoriteStations),
+  );
 
   readonly stations = this.favoriteStations.asReadonly();
 
@@ -42,7 +40,7 @@ export class FavoritesStore {
         (favorite) => radioStationId(favorite) !== stationId,
       );
 
-      if (this.save(favorites)) {
+      if (this.storage.save(favorites)) {
         this.favoriteStations.set(favorites);
         return { success: true, action: 'removed' };
       }
@@ -55,7 +53,7 @@ export class FavoritesStore {
 
     const favorites = [station, ...currentFavorites];
 
-    if (this.save(favorites)) {
+    if (this.storage.save(favorites)) {
       this.favoriteStations.set(favorites);
       return { success: true, action: 'added' };
     }
@@ -75,7 +73,7 @@ export class FavoritesStore {
       radioStationId(favorite) === stationId ? station : favorite,
     );
 
-    if (!this.save(favorites)) {
+    if (!this.storage.save(favorites)) {
       return { success: false, reason: 'persistence' };
     }
 
@@ -84,36 +82,13 @@ export class FavoritesStore {
   }
 
   exportFavorites(): string {
-    const storedFavorites: StoredFavorites = {
-      version: 1,
-      stations: this.favoriteStations(),
-    };
-
-    return JSON.stringify(storedFavorites, null, 2);
+    return this.storage.serialize(this.favoriteStations());
   }
 
   importFavorites(contents: string): FavoritesImportResult {
-    let value: unknown;
+    const importedStations = this.storage.parse(contents);
 
-    try {
-      value = JSON.parse(contents) as unknown;
-    } catch {
-      return { success: false, reason: 'invalid' };
-    }
-
-    if (!value || typeof value !== 'object') {
-      return { success: false, reason: 'invalid' };
-    }
-
-    const storedFavorites = value as Record<string, unknown>;
-
-    if (storedFavorites['version'] !== 1 || !Array.isArray(storedFavorites['stations'])) {
-      return { success: false, reason: 'invalid' };
-    }
-
-    const importedStations = storedFavorites['stations'].map(parseRadioStation);
-
-    if (importedStations.some((station) => station === null)) {
+    if (!importedStations) {
       return { success: false, reason: 'invalid' };
     }
 
@@ -121,7 +96,7 @@ export class FavoritesStore {
     const newStations: RadioStation[] = [];
 
     for (const station of importedStations) {
-      if (station && !existingIds.has(radioStationId(station))) {
+      if (!existingIds.has(radioStationId(station))) {
         existingIds.add(radioStationId(station));
         newStations.push(station);
       }
@@ -137,51 +112,12 @@ export class FavoritesStore {
 
     const favorites = [...newStations, ...this.favoriteStations()];
 
-    if (!this.save(favorites)) {
+    if (!this.storage.save(favorites)) {
       return { success: false, reason: 'persistence' };
     }
 
     this.favoriteStations.set(favorites);
 
     return { success: true, imported: newStations.length, total: favorites.length };
-  }
-
-  private load(): RadioStation[] {
-    try {
-      const storedFavorites = JSON.parse(
-        localStorage.getItem(this.storageKey) ?? 'null',
-      ) as unknown;
-
-      if (!storedFavorites || typeof storedFavorites !== 'object') {
-        return [];
-      }
-
-      const value = storedFavorites as Record<string, unknown>;
-
-      if (value['version'] !== 1 || !Array.isArray(value['stations'])) {
-        return [];
-      }
-
-      return value['stations']
-        .map(parseRadioStation)
-        .filter((favorite): favorite is RadioStation => favorite !== null)
-        .slice(0, maximumFavoriteStations);
-    } catch {
-      return [];
-    }
-  }
-
-  private save(favorites: RadioStation[]): boolean {
-    try {
-      const storedFavorites: StoredFavorites = {
-        version: 1,
-        stations: favorites,
-      };
-
-      localStorage.setItem(this.storageKey, JSON.stringify(storedFavorites));
-      return true;
-    } catch {
-      return false;
-    }
   }
 }
