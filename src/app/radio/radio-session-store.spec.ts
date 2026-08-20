@@ -176,10 +176,12 @@ describe('RadioSessionStore', () => {
     expect(store.station()).toEqual(favorite);
   });
 
-  it('keeps the current station when favorite selection fails', async () => {
+  it('selects the persisted favorite when its refresh fails', async () => {
     const initialStation = createStation();
     const unavailableFavorite = createStation({
       source: { provider: 'radio-browser', externalId: 'station-2' },
+      name: 'Saved Favorite',
+      streamUrl: 'https://stream.example.com/saved',
     });
     stationService.getRandomStation.mockResolvedValue(initialStation);
     stationService.refreshStation.mockRejectedValue(new Error('Unavailable'));
@@ -187,9 +189,10 @@ describe('RadioSessionStore', () => {
 
     await store.playRandomStation();
 
-    await expect(store.playFavoriteStation(unavailableFavorite)).resolves.toBe(false);
-    expect(store.station()).toEqual(initialStation);
-    expect(store.stationError()).toBe('The favorite station could not be loaded. Try again.');
+    await expect(store.playFavoriteStation(unavailableFavorite)).resolves.toBe(true);
+    expect(store.station()).toEqual(unavailableFavorite);
+    expect(store.stationError()).toBe('');
+    expect(favoritesStore.update).not.toHaveBeenCalled();
   });
 
   it('refreshes a restored station and updates its persisted favorite', async () => {

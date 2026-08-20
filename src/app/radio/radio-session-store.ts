@@ -73,9 +73,17 @@ export class RadioSessionStore {
 
     try {
       const canRefresh = this.stationService.canRefresh(station.source);
-      const currentStation = await this.stationService.refreshStation(station);
+      let currentStation = station;
+      let refreshSucceeded = false;
 
-      if (canRefresh) {
+      try {
+        currentStation = await this.stationService.refreshStation(station);
+        refreshSucceeded = true;
+      } catch {
+        // Fall back to the persisted favorite when its provider is unavailable.
+      }
+
+      if (canRefresh && refreshSucceeded) {
         void this.favoritesStore.update(currentStation);
       }
 
