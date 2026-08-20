@@ -197,9 +197,11 @@ describe('favorites and transfers', () => {
     expect(fixture.nativeElement.querySelector('.favorites-panel')).toBeNull();
   });
 
-  it('should keep the favorites menu open when current station data cannot be loaded', async () => {
+  it('should play stored favorite data when current station data cannot be loaded', async () => {
     const station = createStation({
       source: { provider: 'radio-browser', externalId: 'favorite-1' },
+      name: 'Saved Station',
+      streamUrl: 'https://stream.example.com/saved',
     });
     localStorage.setItem(
       'random-radio:favorites',
@@ -213,11 +215,14 @@ describe('favorites and transfers', () => {
     (fixture.nativeElement.querySelector('.favorite-station') as HTMLButtonElement).click();
     await setup.settlePlayback(fixture);
 
-    expect(fixture.nativeElement.querySelector('.favorites-panel')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.status')?.textContent).toContain(
+    const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
+
+    expect(audio.src).toBe('https://stream.example.com/saved');
+    expect(setup.playAudio).toHaveBeenCalledOnce();
+    expect(fixture.nativeElement.querySelector('.favorites-panel')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.status')?.textContent).not.toContain(
       'The favorite station could not be loaded. Try again.',
     );
-    expect(setup.playAudio).not.toHaveBeenCalled();
   });
 
   it('should keep playing without showing a notification when refreshed data cannot be persisted', async () => {
