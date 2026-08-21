@@ -217,26 +217,20 @@ h1 {
   }
 }
 
-@media (orientation: landscape) and (max-height: 34rem) and (max-width: 64rem) {
+@media (orientation: landscape) and (width > 34rem) and (max-height: 48rem) and (max-width: 86rem) {
   .shell {
     align-items: center;
     padding: 0.75rem;
   }
 
   .player {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: auto auto 1fr;
-    column-gap: clamp(1rem, 4vw, 2.5rem);
-    row-gap: 0.4rem;
-    width: min(100%, 58rem);
+    width: min(100%, 38rem);
     margin-top: 0;
   }
 
   .topbar {
-    grid-column: 1 / -1;
     align-items: center;
-    margin-bottom: 0;
+    margin-bottom: 0.5rem;
   }
 
   .eyebrow {
@@ -244,25 +238,54 @@ h1 {
   }
 
   h1 {
+    max-width: 15ch;
+    font-size: clamp(2.4rem, 8vh, 3.25rem);
+    line-height: 1.02;
+  }
+
+  .primary-action {
+    min-height: 2.75rem;
+    margin-top: 1.25rem;
+    padding: 0.65rem 0.9rem;
+  }
+
+  app-radio-station-player {
+    min-width: 0;
+  }
+}
+
+@media (orientation: landscape) and (width > 34rem) and (max-height: 28rem) and (max-width: 64rem) {
+  .player {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto auto 1fr;
+    column-gap: clamp(1rem, 4vw, 2rem);
+    row-gap: 0.4rem;
+    width: min(100%, 58rem);
+  }
+
+  .topbar {
+    grid-column: 1 / -1;
+    margin-bottom: 0;
+  }
+
+  h1 {
     grid-column: 1;
     grid-row: 2 / span 2;
-    align-self: start;
-    font-size: clamp(2.5rem, 11vh, 3.5rem);
-    line-height: 0.94;
+    max-width: 12ch;
+    font-size: clamp(2rem, 10vh, 2.6rem);
+    line-height: 1;
   }
 
   .primary-action {
     grid-column: 2;
     grid-row: 2;
     width: 100%;
-    min-height: 2.75rem;
     margin-top: 0;
-    padding: 0.65rem 0.9rem;
   }
 
   app-radio-station-player {
     grid-column: 2;
     grid-row: 3;
-    min-width: 0;
   }
 }

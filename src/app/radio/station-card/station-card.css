@@ -177,11 +177,11 @@ p {
   }
 }
 
-@media (orientation: landscape) and (max-height: 34rem) and (max-width: 64rem) {
+@media (orientation: landscape) and (max-height: 48rem) and (max-width: 86rem) {
   .station {
     grid-template-columns: 3.25rem minmax(0, 1fr) 2.75rem;
     gap: 0.65rem;
-    margin-top: 0.35rem;
+    margin-top: 0.65rem;
     padding: 0.65rem;
   }
 

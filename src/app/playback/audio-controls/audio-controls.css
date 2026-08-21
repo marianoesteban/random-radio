@@ -238,7 +238,7 @@
   }
 }
 
-@media (orientation: landscape) and (max-height: 34rem) and (max-width: 64rem) {
+@media (orientation: landscape) and (max-height: 48rem) and (max-width: 86rem) {
   .audio-controls {
     grid-template-columns: 2.75rem minmax(0, 1fr) 3rem;
     gap: 0.5rem;
