@@ -24,9 +24,9 @@ p {
   }
 }
 
-@media (orientation: landscape) and (max-height: 34rem) and (max-width: 64rem) {
+@media (orientation: landscape) and (max-height: 48rem) and (max-width: 86rem) {
   .status {
     min-height: 1.4rem;
-    margin-top: 0;
+    margin-top: 0.5rem;
   }
 }
