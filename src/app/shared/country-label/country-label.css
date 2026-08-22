@@ -12,5 +12,6 @@
 }
 
 .country-flag {
+  font-family: 'Twemoji Country Flags', sans-serif;
   margin-inline-end: 0.35rem;
 }
